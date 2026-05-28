@@ -54,7 +54,7 @@ To print the processed summary tables used by the manuscript:
 python scripts/print_main_tables.py
 ```
 
-This reads `results/` only and does not require raw images.
+This reads `results/` only and does not require raw images. It prints the three main dataset tables and the Open Images post-hoc baseline table.
 
 ## Full Reproduction Entry Points
 
@@ -64,6 +64,7 @@ The main full-run scripts are:
 python scripts/run_openimages_heldout_calibration.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_10k_heldout
 python scripts/run_coco_heldout_calibration.py --config configs/coco_heldout_ultrastrict.yaml --output-dir outputs/coco_val2017_heldout
 python scripts/run_nuswide_full_suite.py --config configs/nuswide_heldout_ultrastrict.yaml --output-dir outputs/nuswide_heldout
+python scripts/run_openimages_posthoc_baselines.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_posthoc_baselines
 ```
 
 The paper reports averages over two class-split sets and multiple image seeds. Use the paired classA/classB configs and seed overrides listed in the configs to reproduce the full 12 Open Images/COCO and 10 NUS-WIDE configurations.
@@ -75,6 +76,17 @@ The paper reports averages over two class-split sets and multiple image seeds. U
 | Open Images 10k | 0.2592 | 0.2126 | 18.0% |
 | COCO val2017 | 0.2545 | 0.1848 | 27.4% |
 | NUS-WIDE stress test | 0.2571 | 0.1920 | 25.3% |
+
+## Post-Hoc Baseline Check
+
+The Open Images post-hoc baseline comparison is stored in:
+
+```text
+results/supplementary/posthoc_combined_summary.csv
+results/supplementary/posthoc_combined_report.md
+```
+
+The entropy selective rejection row follows the manuscript Table 7 value: TECR `0.2562`, a `1.1%` reduction from CLIP+kNN under the same 12-configuration protocol.
 
 ## Scope Notes
 

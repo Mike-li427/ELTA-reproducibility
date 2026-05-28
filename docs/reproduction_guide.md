@@ -13,14 +13,16 @@ This prints manuscript-ready summaries from `results/`:
 - Table 1: Open Images 10k main methods
 - Table 2: COCO val2017 main methods
 - Table 3: NUS-WIDE stress test
+- Table 7: Open Images post-hoc baseline strategies
 
 ## Full experiment outline
 
 1. Prepare public datasets under `data/`.
 2. Install `requirements.txt`.
 3. Run the held-out calibration scripts for both class-split sets and the listed seeds.
-4. Run the summarization scripts to aggregate per-configuration outputs.
-5. Compare generated summary CSVs with `results/`.
+4. Run `scripts/run_openimages_posthoc_baselines.py` for the Open Images post-hoc baseline comparison.
+5. Run the summarization scripts to aggregate per-configuration outputs.
+6. Compare generated summary CSVs with `results/`.
 
 The protocol uses:
 
@@ -28,6 +30,10 @@ The protocol uses:
 - kNN: `k=20`, temperature `0.07`
 - gate grid: residual powers `[0.0, 0.1, 0.2, 0.25, 0.3, 0.35, 0.4]`, confidence cutoffs `[0.2, 0.3, 0.4, 0.5, 0.6]`, temperatures `[0.01, 0.02, 0.05, 0.1]`
 - AP/F1 preservation tolerance: `0.25%`
+
+## Post-hoc baseline summary
+
+The manuscript Table 7 evidence is in `results/supplementary/posthoc_combined_summary.csv`. Under the 12-configuration Open Images protocol, entropy selective rejection reports TECR `0.2562` and a `1.1%` reduction, while the ELTA held-out confidence gate reports TECR `0.2126` and an `18.0%` reduction.
 
 ## Important boundary
 

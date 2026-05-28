@@ -39,6 +39,34 @@ def print_table(title: str, rows: list[dict], method_names: dict[str, str]) -> N
         print(f"| {name} | {fmt(ap)} | {fmt(f1)} | {fmt(tecr)} | {fmt_pct(reduction)} |")
 
 
+def print_posthoc_table() -> None:
+    method_names = {
+        "clip_knn": "CLIP+kNN",
+        "temperature_scaling": "Temperature scaling",
+        "split_conformal": "Split conformal prediction",
+        "maxlogit_known_reject": "MaxLogit/MCM-style rejection",
+        "entropy_reject": "Entropy selective rejection",
+        "elta_confidence_heldout": "ELTA held-out confidence gate",
+    }
+    rows = read_rows(ROOT / "results" / "supplementary" / "posthoc_combined_summary.csv")
+    rows = [row for method in method_names for row in rows if row["method"] == method]
+
+    print("\n## Table 7: Open Images post-hoc baseline strategies\n")
+    print("| Method | AP | F1 | TECR | Avg. labels | Coverage | TECR reduction |")
+    print("|---|---:|---:|---:|---:|---:|---:|")
+    for row in rows:
+        method = row["method"]
+        print(
+            f"| {method_names[method]} | "
+            f"{fmt(row['average_precision_mean'])} | "
+            f"{fmt(row['best_f1_mean'])} | "
+            f"{fmt(row['tecr_mean'])} | "
+            f"{fmt(row['avg_predicted_labels_mean'])} | "
+            f"{fmt(row['coverage_mean'])} | "
+            f"{fmt_pct(row['tecr_reduction_pct'])} |"
+        )
+
+
 def main() -> None:
     method_names = {
         "clip_knn_global_threshold": "CLIP+kNN global threshold",
@@ -60,6 +88,8 @@ def main() -> None:
     nuswide_rows = read_rows(ROOT / "results" / "nuswide" / "main_summary_10config.csv")
     nuswide_rows = [row for method in order for row in nuswide_rows if row["method"] == method]
     print_table("Table 3: NUS-WIDE stress test", nuswide_rows, method_names)
+
+    print_posthoc_table()
 
 
 if __name__ == "__main__":
