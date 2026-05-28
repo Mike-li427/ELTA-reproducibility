@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: "ELTA Reproducibility Artifact"
+message: "If you use this artifact, please cite the associated paper."
+type: software
+authors:
+  - family-names: "Anonymous"
+    given-names: "Author"
+version: "0.1.0"
+date-released: "2026-05-28"
+repository-code: "https://github.com/Mike-li427/ELTA-reproducibility"
+license: MIT

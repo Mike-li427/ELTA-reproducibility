@@ -1,0 +1,42 @@
+﻿seed: 20260522
+device: cuda
+
+data:
+  root: data/coco2017
+  image_set: val2017
+  annotation_file: annotations/instances_val2017.json
+  max_images:
+  download: true
+  download_source: official
+
+clip:
+  model: ViT-B/32
+  batch_size: 64
+  num_workers: 2
+
+protocol:
+  split_seeds:
+    - 20260622
+    - 20260623
+    - 20260624
+    - 20260625
+    - 20260626
+  emerging_count: 15
+  tail_count: 10
+  min_retrieval_positives: 5
+  min_calibration_positives: 5
+
+knn:
+  k: 20
+  temperature: 0.07
+
+heldout_calibration:
+  retrieval_fraction: 0.4
+  calibration_fraction: 0.2
+  ap_tolerance: 0.0025
+  f1_tolerance: 0.0025
+  residual_powers: [0.0, 0.1, 0.2, 0.25, 0.3, 0.35, 0.4]
+  confidence_cutoffs: [0.2, 0.3, 0.4, 0.5, 0.6]
+  confidence_temperatures: [0.01, 0.02, 0.05, 0.1]
+
+output_dir: outputs/coco_heldout_cache

@@ -1,0 +1,7 @@
+ftfy
+regex
+tqdm
+numpy
+PyYAML
+scikit-learn
+git+https://github.com/openai/CLIP.git
