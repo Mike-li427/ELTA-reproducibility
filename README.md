@@ -27,6 +27,8 @@ pip install -r requirements.txt
 
 The original experiments used frozen CLIP ViT-B/32 unless otherwise noted. GPU is recommended for feature extraction, but the post-hoc gate itself is lightweight.
 
+The optional MKT sanity-check script additionally expects a local checkout of the official MKT repository, its PyTorch/vision dependencies, and the public NUS-WIDE checkpoints. The checkpoints are not redistributed in this artifact.
+
 ## Data
 
 Raw Open Images, COCO, and NUS-WIDE images are not redistributed. Download or place them under:
@@ -65,6 +67,7 @@ python scripts/run_openimages_heldout_calibration.py --config configs/openimages
 python scripts/run_coco_heldout_calibration.py --config configs/coco_heldout_ultrastrict.yaml --output-dir outputs/coco_val2017_heldout
 python scripts/run_nuswide_full_suite.py --config configs/nuswide_heldout_ultrastrict.yaml --output-dir outputs/nuswide_heldout
 python scripts/run_openimages_posthoc_baselines.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_posthoc_baselines
+python scripts/run_openimages_mkt_baseline.py --config configs/openimages_10k_vitb16_heldout.yaml --output-dir outputs/openimages_mkt_baseline --mkt-root /path/to/MKT --first-stage-ckpt /path/to/mkt_nus_first_stage.pth --second-stage-ckpt /path/to/mkt_nus_second_stage.pth
 ```
 
 The paper reports averages over two class-split sets and multiple image seeds. Use the paired classA/classB configs and seed overrides listed in the configs to reproduce the full 12 Open Images/COCO and 10 NUS-WIDE configurations.
@@ -88,8 +91,20 @@ results/supplementary/posthoc_combined_report.md
 
 The entropy selective rejection row follows the manuscript Table 7 value: TECR `0.2562`, a `1.1%` reduction from CLIP+kNN under the same 12-configuration protocol.
 
+## MKT Sanity Check
+
+The adapted public MKT checkpoint check is stored in:
+
+```text
+results/supplementary/mkt_combined_summary.csv
+results/supplementary/mkt_combined_report.md
+```
+
+This is a cross-protocol sanity check using public NUS-WIDE MKT checkpoints with the Open Images label list substituted. It reports AP `0.6263`, F1 `0.6626`, and TECR `0.6399` over 12 Open Images split configurations. It is not a same-protocol reproduction of MKT's benchmark performance.
+
 ## Scope Notes
 
 - ASL and DBLoss are adapted as same-protocol frozen-feature trained-head baselines, not official full image-backbone reproductions.
+- MKT checkpoints are not redistributed; use the public checkpoint links from the official MKT repository or locally provided checkpoint files.
 - The gate is a post-hoc reliability layer and can be applied on top of different scorers.
 - NUS-WIDE raw URL availability may drift over time; use the included exact image-name list for comparison with the reported subset.

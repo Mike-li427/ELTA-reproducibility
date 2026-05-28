@@ -14,6 +14,7 @@ This prints manuscript-ready summaries from `results/`:
 - Table 2: COCO val2017 main methods
 - Table 3: NUS-WIDE stress test
 - Table 7: Open Images post-hoc baseline strategies
+- Supplementary MKT adapted-checkpoint sanity check
 
 ## Full experiment outline
 
@@ -21,8 +22,9 @@ This prints manuscript-ready summaries from `results/`:
 2. Install `requirements.txt`.
 3. Run the held-out calibration scripts for both class-split sets and the listed seeds.
 4. Run `scripts/run_openimages_posthoc_baselines.py` for the Open Images post-hoc baseline comparison.
-5. Run the summarization scripts to aggregate per-configuration outputs.
-6. Compare generated summary CSVs with `results/`.
+5. Optionally run `scripts/run_openimages_mkt_baseline.py` with a local MKT checkout and public NUS-WIDE checkpoints for the adapted-checkpoint sanity check.
+6. Run the summarization scripts to aggregate per-configuration outputs.
+7. Compare generated summary CSVs with `results/`.
 
 The protocol uses:
 
@@ -35,6 +37,12 @@ The protocol uses:
 
 The manuscript Table 7 evidence is in `results/supplementary/posthoc_combined_summary.csv`. Under the 12-configuration Open Images protocol, entropy selective rejection reports TECR `0.2562` and a `1.1%` reduction, while the ELTA held-out confidence gate reports TECR `0.2126` and an `18.0%` reduction.
 
+## MKT adapted-checkpoint summary
+
+The supplementary MKT sanity-check evidence is in `results/supplementary/mkt_combined_summary.csv`. It uses public NUS-WIDE MKT checkpoints as an adapted Open Images scorer by replacing the label list, so it is not a same-protocol MKT reproduction. The 12-configuration result is AP `0.6263`, F1 `0.6626`, and TECR `0.6399`.
+
+To rerun it, provide `--mkt-root`, `--first-stage-ckpt`, and `--second-stage-ckpt` explicitly. The checkpoint files are intentionally not committed.
+
 ## Important boundary
 
-The artifact is designed for reproducibility of the post-hoc frozen-feature protocol. It does not redistribute raw datasets, large CLIP feature caches, or official fully trained ASL/DBLoss model checkpoints.
+The artifact is designed for reproducibility of the post-hoc frozen-feature protocol. It does not redistribute raw datasets, large CLIP feature caches, MKT checkpoints, or official fully trained ASL/DBLoss model checkpoints.

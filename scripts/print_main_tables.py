@@ -67,6 +67,22 @@ def print_posthoc_table() -> None:
         )
 
 
+def print_mkt_table() -> None:
+    rows = read_rows(ROOT / "results" / "supplementary" / "mkt_combined_summary.csv")
+
+    print("\n## Supplementary: Adapted public MKT checkpoint sanity check\n")
+    print("| Method | AP | F1 | TECR |")
+    print("|---|---:|---:|---:|")
+    for row in rows:
+        name = "Adapted public MKT checkpoint" if row["method"] == "mkt_open_vocab" else row["method"]
+        print(
+            f"| {name} | "
+            f"{fmt(row['average_precision_mean'])} | "
+            f"{fmt(row['best_f1_mean'])} | "
+            f"{fmt(row['tecr_mean'])} |"
+        )
+
+
 def main() -> None:
     method_names = {
         "clip_knn_global_threshold": "CLIP+kNN global threshold",
@@ -90,6 +106,7 @@ def main() -> None:
     print_table("Table 3: NUS-WIDE stress test", nuswide_rows, method_names)
 
     print_posthoc_table()
+    print_mkt_table()
 
 
 if __name__ == "__main__":
