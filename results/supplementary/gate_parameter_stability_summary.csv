@@ -1,0 +1,3 @@
+dataset,num_selected,residual_power_mean,residual_power_std,residual_power_min,residual_power_max,confidence_cutoff_mean,confidence_cutoff_std,confidence_cutoff_min,confidence_cutoff_max,confidence_temperature_mean,confidence_temperature_std,confidence_temperature_min,confidence_temperature_max
+COCO val2017,60,0.2808333333333334,0.10817894257118252,0.0,0.4,0.5216666666666667,0.11060950807609694,0.2,0.6,0.041166666666666664,0.03719356909360682,0.01,0.1
+Open Images 10k,60,0.24250000000000002,0.10529418030821865,0.1,0.4,0.44166666666666665,0.1252680741269707,0.2,0.6,0.05333333333333332,0.03398238160999028,0.01,0.1

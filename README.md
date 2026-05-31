@@ -1,6 +1,6 @@
 # ELTA Reproducibility Artifact
 
-This private review artifact supports the paper **Confidence-Aware Risk Control for Open-Label Multi-Label Recognition with Frozen Vision-Language Models**.
+This anonymous private review artifact supports the paper **Confidence-Aware Risk Control for Open-Label Multi-Label Recognition with Frozen Vision-Language Models**.
 
 The code evaluates a post-hoc held-out confidence gate for reducing Tail-Emerging Confusion Rate (TECR) in open-label multi-label recognition. The repository contains the core TECR/gate implementation, experiment scripts, protocol configs, NUS-WIDE exact image/class manifests, and processed summary CSVs used to check the main paper tables.
 
@@ -29,6 +29,11 @@ The original experiments used frozen CLIP ViT-B/32 unless otherwise noted. GPU i
 
 The optional MKT sanity-check script additionally expects a local checkout of the official MKT repository, its PyTorch/vision dependencies, and the public NUS-WIDE checkpoints. The checkpoints are not redistributed in this artifact.
 
+
+## Config Path Policy
+
+The main `ELTA/` working tree records the original AutoDL experiment paths such as `/root/autodl-tmp/elta_data/...`. This reproducibility artifact rewrites the same protocol configs to portable relative roots under `data/...`. Apart from that data-root rewrite, the shared Open Images, COCO, NUS-WIDE, and ViT-B/16 configs are intended to match the main project protocol.
+
 ## Data
 
 Raw Open Images, COCO, and NUS-WIDE images are not redistributed. Download or place them under:
@@ -50,13 +55,19 @@ Pre-computed CLIP features are intentionally not committed because they may be l
 
 ## Quick Check: Print Main Tables
 
-To print the processed summary tables used by the manuscript:
+To print the processed summary tables used by the manuscript and supplementary material:
 
 ```bash
 python scripts/print_main_tables.py
 ```
 
-This reads `results/` only and does not require raw images. It prints the three main dataset tables and the Open Images post-hoc baseline table.
+This reads `results/` only and does not require raw images. It prints the three main dataset tables plus the key ablation, sensitivity, post-hoc, NUS-WIDE, MKT, ODIN, robustness, and parameter-stability summaries.
+
+To check that every paper-facing experiment claim has a runnable script, protocol config, processed-result file, and key manuscript/supplementary numeric value:
+
+```bash
+python scripts/audit_reproducibility.py
+```
 
 ## Full Reproduction Entry Points
 
@@ -64,6 +75,8 @@ The main full-run scripts are:
 
 ```bash
 python scripts/run_openimages_heldout_calibration.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_10k_heldout
+python scripts/run_openimages_calibrated_baselines.py --config configs/openimages_10k_heldout_ultrastrict.yaml --heldout-dir outputs/openimages_10k_heldout --output-dir outputs/openimages_10k_heldout
+python scripts/analyze_openimages_heldout_groups.py --config configs/openimages_10k_heldout_ultrastrict.yaml --heldout-dir outputs/openimages_10k_heldout --output-dir outputs/openimages_10k_heldout
 python scripts/run_coco_heldout_calibration.py --config configs/coco_heldout_ultrastrict.yaml --output-dir outputs/coco_val2017_heldout
 python scripts/run_nuswide_full_suite.py --config configs/nuswide_heldout_ultrastrict.yaml --output-dir outputs/nuswide_heldout
 python scripts/run_openimages_posthoc_baselines.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_posthoc_baselines
@@ -71,6 +84,28 @@ python scripts/run_openimages_mkt_baseline.py --config configs/openimages_10k_vi
 ```
 
 The paper reports averages over two class-split sets and multiple image seeds. Use the paired classA/classB configs and seed overrides listed in the configs to reproduce the full 12 Open Images/COCO and 10 NUS-WIDE configurations.
+
+## Supplementary Ablation Entry Points
+
+These scripts reproduce the supplementary ablations and diagnostics from raw data or regenerated feature caches:
+
+```bash
+python scripts/run_openimages_gate_ablation.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_gate_ablation
+python scripts/run_openimages_calibration_size_sensitivity.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_calibration_size
+python scripts/run_openimages_calibration_ratio_sensitivity.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_calibration_ratio
+python scripts/run_asl_gate_baselines.py --dataset openimages --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/asl_gate_openimages
+python scripts/run_tecr_robustness.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/tecr_robustness_openimages
+python scripts/run_openimages_odin_baseline.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_odin
+python scripts/summarize_gate_parameter_stability.py --audit-root outputs_or_audit_root --output-dir outputs/gate_parameter_stability
+```
+
+After running per-configuration jobs, use the corresponding `summarize_*` scripts to aggregate to 12-configuration or 10-configuration CSVs. The processed CSVs shipped under `results/` are the values used for manuscript and supplementary table checks.
+
+For the NUS-WIDE 10-configuration suite, aggregate the per-configuration `run_nuswide_full_suite.py` outputs with:
+
+```bash
+python scripts/summarize_nuswide_full_suite.py --glob "outputs/nuswide_heldout_ultrastrict*/" --output-dir outputs/nuswide_10config_summary
+```
 
 ## Main Reported TECR Results
 
@@ -108,3 +143,7 @@ This is a cross-protocol sanity check using public NUS-WIDE MKT checkpoints with
 - MKT checkpoints are not redistributed; use the public checkpoint links from the official MKT repository or locally provided checkpoint files.
 - The gate is a post-hoc reliability layer and can be applied on top of different scorers.
 - NUS-WIDE raw URL availability may drift over time; use the included exact image-name list for comparison with the reported subset.
+
+## Anonymous-review policy
+
+During anonymous review, repository URLs and author-identifying metadata should remain private or anonymized. Replace the placeholder release information only in the non-anonymous camera-ready/public artifact.

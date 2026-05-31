@@ -4,4 +4,12 @@ tqdm
 numpy
 PyYAML
 scikit-learn
+Pillow
+torch
+torchvision
 git+https://github.com/openai/CLIP.git
+
+# Optional dependencies used by the full ELTA working tree, not required by the current public reproduction scripts:
+# timm
+# h5py
+# gdown

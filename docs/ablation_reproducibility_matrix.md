@@ -1,0 +1,22 @@
+# Ablation Reproducibility Matrix
+
+This matrix lists every ablation, sensitivity test, and supplementary diagnostic that is claimed by the manuscript or supplementary material. Use `python scripts/audit_reproducibility.py` to check the same coverage and key paper-facing numeric values automatically.
+
+| Result family | Rerun scripts | Processed-result files |
+|---|---|---|
+| Open Images gate ablation | `scripts/run_openimages_gate_ablation.py` | `results/openimages_10k/gate_ablation_12config_summary.csv` |
+| Calibration-size sensitivity | `scripts/run_openimages_calibration_size_sensitivity.py`, `scripts/summarize_calibration_size_sensitivity.py` | `results/openimages_10k/calibration_size_12config_summary.csv` |
+| Calibration-ratio sensitivity | `scripts/run_openimages_calibration_ratio_sensitivity.py`, `scripts/summarize_calibration_ratio_sensitivity.py` | `results/supplementary/calibration_ratio_summary.csv` |
+| Frozen-feature ASL/DBLoss baselines | `scripts/run_openimages_training_baselines.py`, `scripts/run_coco_training_baselines.py`, `scripts/run_nuswide_full_suite.py`, `scripts/summarize_training_and_main_results.py` | `results/openimages_10k/training_baseline_12config_summary.csv`, `results/coco_val2017/training_baseline_12config_summary.csv`, `results/nuswide/training_baseline_10config_summary.csv` |
+| ASL+gate add-on | `scripts/run_asl_gate_baselines.py`, `scripts/summarize_asl_gate_results.py`, `scripts/run_nuswide_full_suite.py` | `results/openimages_10k/asl_gate_summary.csv`, `results/coco_val2017/asl_gate_summary.csv`, `results/nuswide/asl_gate_10config_summary.csv` |
+| NUS-WIDE full suite | `scripts/run_nuswide_full_suite.py`, `scripts/summarize_nuswide_full_suite.py`, `scripts/nuswide_common.py` | `results/nuswide/main_summary_10config.csv`, `results/nuswide/calibrated_baseline_10config_summary.csv`, `results/nuswide/gate_ablation_10config_summary.csv`, `results/nuswide/frequency_group_10config_summary.csv` |
+| TECR definition robustness | `scripts/run_tecr_robustness.py` | `results/supplementary/tecr_robustness_summary.csv` |
+| Selective and generic post-hoc baselines | `scripts/run_openimages_posthoc_baselines.py`, `scripts/run_openimages_selective_baseline.py` | `results/supplementary/posthoc_combined_summary.csv` |
+| ODIN low-confidence rejection | `scripts/run_openimages_odin_baseline.py` | `results/supplementary/odin_combined_summary.csv` |
+| Adapted public MKT checkpoint | `scripts/run_openimages_mkt_baseline.py` | `results/supplementary/mkt_combined_summary.csv` |
+| Gate parameter stability | `scripts/summarize_gate_parameter_stability.py` | `results/supplementary/gate_parameter_stability_summary.csv` |
+| ViT-B/16 backbone check | `scripts/run_openimages_pilot.py`, `scripts/run_openimages_heldout_calibration.py` | `results/supplementary/openimages_vitb16_heldout_summary.csv` |
+| Frequency-group diagnostics | `scripts/analyze_openimages_heldout_groups.py`, `scripts/run_coco_heldout_calibration.py`, `scripts/summarize_fairness_diagnostics.py` | `results/supplementary/frequency_group_12config_summary.csv`, `results/nuswide/frequency_group_10config_summary.csv` |
+| COCO trained-head exception audit | `scripts/summarize_fairness_diagnostics.py` | `results/supplementary/coco_training_exception_configs.csv` |
+
+The processed-result path is intended for no-raw-data verification. The rerun scripts require raw dataset placement under `data/`, regenerated or supplied CLIP feature caches, and, for MKT only, external checkpoint files that are not redistributed here.
