@@ -13,10 +13,12 @@ This matrix lists every ablation, sensitivity test, and supplementary diagnostic
 | TECR definition robustness | `scripts/run_tecr_robustness.py` | `results/supplementary/tecr_robustness_summary.csv` |
 | Selective and generic post-hoc baselines | `scripts/run_openimages_posthoc_baselines.py`, `scripts/run_openimages_selective_baseline.py` | `results/supplementary/posthoc_combined_summary.csv` |
 | ODIN low-confidence rejection | `scripts/run_openimages_odin_baseline.py` | `results/supplementary/odin_combined_summary.csv` |
+| Known-context logistic controls | `scripts/run_known_aware_posthoc_baselines.py` | `results/supplementary/known_aware_combined_summary.csv`, `results/supplementary/known_aware_combined_report.md` |
+| TECR risk-set denominator audit | `scripts/summarize_tecr_denominators.py` | `results/supplementary/tecr_denominator_combined_summary.csv`, `results/supplementary/tecr_denominator_combined_report.md` |
 | Adapted public MKT checkpoint | `scripts/run_openimages_mkt_baseline.py` | `results/supplementary/mkt_combined_summary.csv` |
 | Gate parameter stability | `scripts/summarize_gate_parameter_stability.py` | `results/supplementary/gate_parameter_stability_summary.csv` |
 | ViT-B/16 backbone check | `scripts/run_openimages_pilot.py`, `scripts/run_openimages_heldout_calibration.py` | `results/supplementary/openimages_vitb16_heldout_summary.csv` |
 | Frequency-group diagnostics | `scripts/analyze_openimages_heldout_groups.py`, `scripts/run_coco_heldout_calibration.py`, `scripts/summarize_fairness_diagnostics.py` | `results/supplementary/frequency_group_12config_summary.csv`, `results/nuswide/frequency_group_10config_summary.csv` |
 | COCO trained-head exception audit | `scripts/summarize_fairness_diagnostics.py` | `results/supplementary/coco_training_exception_configs.csv` |
 
-The processed-result path is intended for no-raw-data verification. The rerun scripts require raw dataset placement under `data/`, regenerated or supplied CLIP feature caches, and, for MKT only, external checkpoint files that are not redistributed here.
+The processed-result path is intended for no-raw-data verification. The rerun scripts require raw dataset placement under `data/`, regenerated CLIP feature caches, and, for MKT only, external checkpoint files that are not redistributed here.

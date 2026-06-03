@@ -1,0 +1,20 @@
+ftfy==6.2.3
+regex==2024.11.6
+tqdm==4.67.1
+numpy==1.26.4
+PyYAML==6.0.2
+scikit-learn==1.5.2
+Pillow==10.4.0
+torch==2.4.1
+torchvision==0.19.1
+
+# CLIP is installed from the OpenAI repository because it is not published as a
+# pinned PyPI wheel. The review-time lock uses a fixed commit rather than a
+# branch name, so dependency resolution does not drift with upstream changes.
+git+https://github.com/openai/CLIP.git@d05afc436d78f1c48dc0dbf8e5980a9d471f35f6
+
+# Optional dependencies used by the full ELTA working tree, not required by the
+# current public reproduction scripts:
+# timm==1.0.11
+# h5py==3.12.1
+# gdown==5.2.0

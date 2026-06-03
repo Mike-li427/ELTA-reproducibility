@@ -279,7 +279,7 @@ def write_report(path: Path, frequency_summary: list[dict], best_method: str, ex
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--audit-root", default="remote_results_protocol_audit_bjb2_20260526_010122/outputs")
+    parser.add_argument("--audit-root", default="outputs")
     parser.add_argument("--output-dir", default="outputs/fairness_diagnostics")
     args = parser.parse_args()
 

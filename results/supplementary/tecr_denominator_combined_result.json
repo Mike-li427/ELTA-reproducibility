@@ -1,0 +1,56 @@
+{
+  "status": "tecr_denominators_combined_complete",
+  "root": "outputs/tecr_denominators_20260602_full",
+  "output_dir": "outputs/tecr_denominators_20260602_full/combined",
+  "num_rows": 170,
+  "summary": [
+    {
+      "dataset": "coco",
+      "num_splits": 60,
+      "risk_set_denominator_mean": 142.85,
+      "risk_set_denominator_std": 33.22232504440248,
+      "risk_set_denominator_min": 79.0,
+      "risk_set_denominator_max": 213.0,
+      "risk_set_fraction_mean": 0.071425,
+      "risk_set_fraction_std": 0.01661116252220124,
+      "risk_set_fraction_min": 0.0395,
+      "risk_set_fraction_max": 0.1065,
+      "eval_images_mean": 2000.0,
+      "eval_images_std": 0.0,
+      "eval_images_min": 2000.0,
+      "eval_images_max": 2000.0
+    },
+    {
+      "dataset": "nuswide",
+      "num_splits": 50,
+      "risk_set_denominator_mean": 103.6,
+      "risk_set_denominator_std": 29.15615942906509,
+      "risk_set_denominator_min": 36.0,
+      "risk_set_denominator_max": 181.0,
+      "risk_set_fraction_mean": 0.024188652813448522,
+      "risk_set_fraction_std": 0.006807415229760703,
+      "risk_set_fraction_min": 0.008405323371468596,
+      "risk_set_fraction_max": 0.042260098062106004,
+      "eval_images_mean": 4283.0,
+      "eval_images_std": 0.0,
+      "eval_images_min": 4283.0,
+      "eval_images_max": 4283.0
+    },
+    {
+      "dataset": "openimages",
+      "num_splits": 60,
+      "risk_set_denominator_mean": 252.93333333333334,
+      "risk_set_denominator_std": 33.71961490554913,
+      "risk_set_denominator_min": 167.0,
+      "risk_set_denominator_max": 309.0,
+      "risk_set_fraction_mean": 0.06323333333333332,
+      "risk_set_fraction_std": 0.008429903726387283,
+      "risk_set_fraction_min": 0.04175,
+      "risk_set_fraction_max": 0.07725,
+      "eval_images_mean": 4000.0,
+      "eval_images_std": 0.0,
+      "eval_images_min": 4000.0,
+      "eval_images_max": 4000.0
+    }
+  ]
+}

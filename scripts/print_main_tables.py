@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def read_rows(path: Path) -> list[dict]:
-    with path.open(newline="", encoding="utf-8") as f:
+    with path.open(newline="", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
 
 
@@ -64,6 +64,64 @@ def print_posthoc_table() -> None:
             f"{fmt(row['avg_predicted_labels_mean'])} | "
             f"{fmt(row['coverage_mean'])} | "
             f"{fmt_pct(row['tecr_reduction_pct'])} |"
+        )
+
+
+def print_known_aware_table() -> None:
+    rows = read_rows(ROOT / "results" / "supplementary" / "known_aware_combined_summary.csv")
+    method_names = {
+        "clip_knn": "CLIP+kNN",
+        "score_only_logistic": "Score-only logistic",
+        "permuted_known_logistic": "Permuted-known logistic",
+        "known_aware_logistic": "Known-aware logistic",
+    }
+    dataset_names = {
+        "openimages": "Open Images 10k",
+        "coco": "COCO val2017",
+        "nuswide": "NUS-WIDE stress test",
+    }
+    order = ["openimages", "coco", "nuswide"]
+    method_order = ["score_only_logistic", "permuted_known_logistic", "known_aware_logistic"]
+
+    print("\n## Supplementary: Known-context logistic controls\n")
+    print("| Dataset | Method | Configs | Split-level rows | AP | F1 | TECR | TECR reduction |")
+    print("|---|---|---:|---:|---:|---:|---:|---:|")
+    for dataset in order:
+        for method in method_order:
+            row = next(row for row in rows if row["dataset"] == dataset and row["method"] == method)
+            print(
+                f"| {dataset_names[dataset]} | {method_names[method]} | "
+                f"{int(float(row['num_configs']))} | "
+                f"{int(float(row['num_split_level_rows']))} | "
+                f"{fmt(row['average_precision_mean'])} | "
+                f"{fmt(row['best_f1_mean'])} | "
+                f"{fmt(row['tecr_mean'])} | "
+                f"{fmt_pct(row['tecr_reduction_pct'])} |"
+            )
+
+
+def print_tecr_denominator_table() -> None:
+    rows = read_rows(ROOT / "results" / "supplementary" / "tecr_denominator_combined_summary.csv")
+    dataset_names = {
+        "openimages": "Open Images 10k",
+        "coco": "COCO val2017",
+        "nuswide": "NUS-WIDE stress test",
+    }
+    order = ["openimages", "coco", "nuswide"]
+
+    print("\n## Supplementary: TECR risk-set denominators\n")
+    print("| Dataset | Split-level rows | Risk set C mean | Risk set C SD | Risk set C min-max | Risk-set fraction |")
+    print("|---|---:|---:|---:|---:|---:|")
+    for dataset in order:
+        row = next(row for row in rows if row["dataset"] == dataset)
+        min_max = f"{int(float(row['risk_set_denominator_min']))}-{int(float(row['risk_set_denominator_max']))}"
+        print(
+            f"| {dataset_names[dataset]} | "
+            f"{int(float(row['num_splits']))} | "
+            f"{fmt(row['risk_set_denominator_mean'], 1)} | "
+            f"{fmt(row['risk_set_denominator_std'], 1)} | "
+            f"{min_max} | "
+            f"{float(row['risk_set_fraction_mean']) * 100:.1f}% |"
         )
 
 
@@ -233,6 +291,8 @@ def main() -> None:
     print_table("Table 3: NUS-WIDE stress test", nuswide_rows, method_names)
 
     print_posthoc_table()
+    print_known_aware_table()
+    print_tecr_denominator_table()
     print_odin_table()
     print_mkt_table()
     print_openimages_ablation_tables()

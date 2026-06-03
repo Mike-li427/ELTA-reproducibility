@@ -17,6 +17,7 @@ This prints manuscript-ready summaries from `results/`:
 - Main and supplementary ablation/sensitivity summaries
 - NUS-WIDE trained-head, ASL+gate, and frequency-group summaries
 - ODIN, MKT, ViT-B/16, TECR-robustness, and gate-parameter-stability summaries
+- Known-context logistic controls and TECR risk-set denominator summaries
 - Supplementary MKT adapted-checkpoint sanity check
 
 Run the completeness audit before packaging or releasing the artifact:
@@ -25,23 +26,24 @@ Run the completeness audit before packaging or releasing the artifact:
 python scripts/audit_reproducibility.py
 ```
 
-The audit does not rerun heavy experiments. It checks that every paper-facing experiment family has a script, config, and processed-result CSV with the expected method rows and key manuscript/supplementary numeric values.
+The audit does not rerun raw-data experiments. It checks that every paper-facing experiment family has a script, config, and processed-result CSV with the expected method rows and key manuscript/supplementary numeric values.
 
 ## Config path policy
 
-Configs in this artifact use portable `data/...` roots. The main ELTA working tree retains the original AutoDL absolute roots for provenance; the protocol fields are otherwise synchronized for the public reproduction configs.
+Configs in this artifact use portable `data/...` roots. The protocol fields are synchronized with the reported Open Images, COCO, NUS-WIDE, and ViT-B/16 settings.
 
 ## Full experiment outline
 
 1. Prepare public datasets under `data/`.
-2. Install `requirements.txt`.
+2. Install `requirements-lock.txt` for the pinned review-time environment, or `requirements.txt` for a looser development install.
 3. Run the held-out calibration scripts for both class-split sets and the listed seeds.
 4. For Open Images, run `scripts/run_openimages_calibrated_baselines.py` and `scripts/analyze_openimages_heldout_groups.py` against each held-out output directory to generate class-threshold/isotonic rows and frequency-group diagnostics.
 5. Run `scripts/run_openimages_posthoc_baselines.py` and `scripts/run_openimages_odin_baseline.py` for the Open Images post-hoc baseline comparison.
-6. Run the ablation/sensitivity scripts listed below for gate ablation, calibration size, calibration ratio, ASL+gate, TECR-definition robustness, and parameter stability.
-7. Optionally run `scripts/run_openimages_mkt_baseline.py` with a local MKT checkout and public NUS-WIDE checkpoints for the adapted-checkpoint sanity check.
-8. Run the summarization scripts to aggregate per-configuration outputs. For NUS-WIDE, use `scripts/summarize_nuswide_full_suite.py` to aggregate the 10 per-configuration full-suite outputs.
-9. Compare generated summary CSVs with `results/`.
+6. Run `scripts/run_known_aware_posthoc_baselines.py` for the known-context logistic control and `scripts/summarize_tecr_denominators.py` for the TECR risk-set denominator audit.
+7. Run the ablation/sensitivity scripts listed below for gate ablation, calibration size, calibration ratio, ASL+gate, TECR-definition robustness, and parameter stability.
+8. Optionally run `scripts/run_openimages_mkt_baseline.py` with a local MKT checkout and public NUS-WIDE checkpoints for the adapted-checkpoint sanity check.
+9. Run the summarization scripts to aggregate per-configuration outputs. For NUS-WIDE, use `scripts/summarize_nuswide_full_suite.py` to aggregate the 10 per-configuration full-suite outputs.
+10. Compare generated summary CSVs with `results/`.
 
 The protocol uses:
 
@@ -64,6 +66,8 @@ The protocol uses:
 | NUS-WIDE stress-test suite | `run_nuswide_full_suite.py`, `summarize_nuswide_full_suite.py` | `results/nuswide/main_summary_10config.csv`, `results/nuswide/*_10config_summary.csv` |
 | TECR definition robustness | `run_tecr_robustness.py` | `results/supplementary/tecr_robustness_summary.csv` |
 | Selective and generic post-hoc baselines | `run_openimages_posthoc_baselines.py`, `run_openimages_selective_baseline.py`, `run_openimages_odin_baseline.py` | `results/supplementary/posthoc_combined_summary.csv`, `results/supplementary/odin_combined_summary.csv` |
+| Known-context logistic controls | `run_known_aware_posthoc_baselines.py` | `results/supplementary/known_aware_combined_summary.csv` |
+| TECR risk-set denominator audit | `summarize_tecr_denominators.py` | `results/supplementary/tecr_denominator_combined_summary.csv` |
 | Adapted MKT checkpoint | `run_openimages_mkt_baseline.py` | `results/supplementary/mkt_combined_summary.csv` |
 | Gate parameter stability | `summarize_gate_parameter_stability.py` | `results/supplementary/gate_parameter_stability_summary.csv` |
 | ViT-B/16 check | `run_openimages_pilot.py`, `run_openimages_heldout_calibration.py` | `results/supplementary/openimages_vitb16_heldout_summary.csv` |
@@ -78,6 +82,22 @@ The manuscript Table 7 evidence is in `results/supplementary/posthoc_combined_su
 The supplementary MKT sanity-check evidence is in `results/supplementary/mkt_combined_summary.csv`. It uses public NUS-WIDE MKT checkpoints as an adapted Open Images scorer by replacing the label list, so it is not a same-protocol MKT reproduction. The 12-configuration result is AP `0.6263`, F1 `0.6626`, and TECR `0.6399`.
 
 To rerun it, provide `--mkt-root`, `--first-stage-ckpt`, and `--second-stage-ckpt` explicitly. The checkpoint files are intentionally not committed.
+
+## Known-context controls and TECR denominator audit
+
+The known-context control evidence is in `results/supplementary/known_aware_combined_summary.csv`. It compares score-only logistic, permuted-known logistic, real known-aware logistic, and the held-out gate under the same calibration/evaluation split discipline. The real known-aware feature reduces TECR on Open Images (`4.2%`), COCO (`12.0%`), and NUS-WIDE (`8.1%`), while the permuted-known feature is weak or adverse.
+
+The denominator audit is in `results/supplementary/tecr_denominator_combined_summary.csv`. It reports `|C|`, the number of tail-known, emerging-negative evaluation images used as the TECR denominator, with means and min/max ranges over split configurations. This audit checks the TECR risk-set denominator only; it does not use scorer predictions, thresholds, or gate selection.
+
+## Descriptive Wilcoxon check
+
+The Wilcoxon script is `scripts/wilcoxon_descriptive_pvalues.py`. It is a descriptive processed-result check over configuration-level paired units, not a split-level significance test. For the released NUS-WIDE rows, run:
+
+```bash
+python scripts/wilcoxon_descriptive_pvalues.py --input results/nuswide/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
+```
+
+For Open Images and COCO, first regenerate or provide the 12 per-configuration `calibrated_baseline_summary.csv` files, then use `--input-glob` with `--unit-cols source` as shown in the README. The script prints the installed SciPy version and the exact `scipy.stats.wilcoxon(...)` call.
 
 ## Important boundary
 

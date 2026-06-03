@@ -36,7 +36,7 @@ def write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--audit-root", default="remote_results_protocol_audit_bjb2_20260526_010122")
+    parser.add_argument("--audit-root", default=".")
     parser.add_argument("--output-dir", default="outputs/gate_parameter_stability")
     args = parser.parse_args()
 

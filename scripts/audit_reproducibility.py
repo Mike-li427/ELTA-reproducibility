@@ -338,6 +338,58 @@ CHECKS: tuple[ClaimCheck, ...] = (
         ),
     ),
     ClaimCheck(
+        name="Known-aware post-hoc controls",
+        scripts=("scripts/run_known_aware_posthoc_baselines.py",),
+        configs=(
+            "configs/openimages_10k_heldout_ultrastrict.yaml",
+            "configs/openimages_10k_heldout_ultrastrict_classB.yaml",
+            "configs/coco_heldout_ultrastrict.yaml",
+            "configs/coco_heldout_ultrastrict_classB.yaml",
+            "configs/nuswide_heldout_ultrastrict.yaml",
+            "configs/nuswide_heldout_ultrastrict_classB.yaml",
+        ),
+        csv=(
+            CsvExpectation(
+                "results/supplementary/known_aware_combined_summary.csv",
+                columns=("dataset", "method", "num_configs", "num_split_level_rows", "average_precision_mean", "best_f1_mean", "tecr_mean", "tecr_reduction_pct"),
+                methods=("clip_knn", "score_only_logistic", "known_aware_logistic", "permuted_known_logistic"),
+                numeric=(
+                    NumericExpectation((("dataset", "openimages"), ("method", "known_aware_logistic")), (("num_configs", 12), ("num_split_level_rows", 60), ("average_precision_mean", 0.8508), ("best_f1_mean", 0.7708), ("tecr_mean", 0.2483), ("tecr_reduction_pct", 4.2)), 5e-4),
+                    NumericExpectation((("dataset", "openimages"), ("method", "permuted_known_logistic")), (("tecr_mean", 0.2616), ("tecr_reduction_pct", -0.9186)), 5e-4),
+                    NumericExpectation((("dataset", "coco"), ("method", "known_aware_logistic")), (("num_configs", 12), ("num_split_level_rows", 60), ("average_precision_mean", 0.8754), ("best_f1_mean", 0.7898), ("tecr_mean", 0.2240), ("tecr_reduction_pct", 12.0)), 5e-4),
+                    NumericExpectation((("dataset", "coco"), ("method", "permuted_known_logistic")), (("tecr_mean", 0.2615), ("tecr_reduction_pct", -2.7)), 5e-4),
+                    NumericExpectation((("dataset", "nuswide"), ("method", "known_aware_logistic")), (("num_configs", 10), ("num_split_level_rows", 50), ("average_precision_mean", 0.7851), ("best_f1_mean", 0.7315), ("tecr_mean", 0.2362), ("tecr_reduction_pct", 8.1)), 5e-4),
+                    NumericExpectation((("dataset", "nuswide"), ("method", "permuted_known_logistic")), (("tecr_mean", 0.2555), ("tecr_reduction_pct", 0.6006)), 5e-4),
+                ),
+            ),
+        ),
+        note="Script method names are mapped to the short method names in the combined CSV.",
+    ),
+    ClaimCheck(
+        name="TECR risk-set denominator audit",
+        scripts=("scripts/summarize_tecr_denominators.py",),
+        configs=(
+            "configs/openimages_10k_heldout_ultrastrict.yaml",
+            "configs/openimages_10k_heldout_ultrastrict_classB.yaml",
+            "configs/coco_heldout_ultrastrict.yaml",
+            "configs/coco_heldout_ultrastrict_classB.yaml",
+            "configs/nuswide_heldout_ultrastrict.yaml",
+            "configs/nuswide_heldout_ultrastrict_classB.yaml",
+        ),
+        csv=(
+            CsvExpectation(
+                "results/supplementary/tecr_denominator_combined_summary.csv",
+                columns=("dataset", "num_splits", "risk_set_denominator_mean", "risk_set_denominator_std", "risk_set_denominator_min", "risk_set_denominator_max", "risk_set_fraction_mean"),
+                numeric=(
+                    NumericExpectation((("dataset", "openimages"),), (("num_splits", 60), ("risk_set_denominator_mean", 252.9333), ("risk_set_denominator_std", 33.7196), ("risk_set_denominator_min", 167), ("risk_set_denominator_max", 309), ("risk_set_fraction_mean", 0.0632)), 5e-4),
+                    NumericExpectation((("dataset", "coco"),), (("num_splits", 60), ("risk_set_denominator_mean", 142.85), ("risk_set_denominator_std", 33.2223), ("risk_set_denominator_min", 79), ("risk_set_denominator_max", 213), ("risk_set_fraction_mean", 0.0714)), 5e-4),
+                    NumericExpectation((("dataset", "nuswide"),), (("num_splits", 50), ("risk_set_denominator_mean", 103.6), ("risk_set_denominator_std", 29.1562), ("risk_set_denominator_min", 36), ("risk_set_denominator_max", 181), ("risk_set_fraction_mean", 0.0242)), 5e-4),
+                ),
+            ),
+        ),
+        note="This audit checks the TECR risk-set denominator only; it does not use scorer predictions, thresholds, or gate selection.",
+    ),
+    ClaimCheck(
         name="Adapted public MKT checkpoint sanity check",
         scripts=("scripts/run_openimages_mkt_baseline.py",),
         configs=("configs/openimages_10k_vitb16_heldout.yaml",),
@@ -420,7 +472,7 @@ CHECKS: tuple[ClaimCheck, ...] = (
 
 
 def read_csv_rows(path: Path) -> list[dict[str, str]]:
-    with path.open(newline="", encoding="utf-8") as f:
+    with path.open(newline="", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
 
 
@@ -517,7 +569,12 @@ def run_checks() -> list[tuple[ClaimCheck, list[str]]]:
 
 
 def print_markdown(results: list[tuple[ClaimCheck, list[str]]]) -> None:
-    print("# Reproducibility Completeness Audit\n")
+    print("# Processed-Result Reproducibility Completeness Audit\n")
+    print(
+        "This audit checks released processed-result CSVs, protocol configs, "
+        "scripts, and reported numeric values. It is not a full raw-data rerun "
+        "audit from images or regenerated CLIP features.\n"
+    )
     print("| Claim group | Status | Details |")
     print("|---|---|---|")
     for check, errors in results:

@@ -1,0 +1,4 @@
+dataset,num_splits,risk_set_denominator_mean,risk_set_denominator_std,risk_set_denominator_min,risk_set_denominator_max,risk_set_fraction_mean,risk_set_fraction_std,eval_images_mean,eval_images_std
+coco,60,142.85,33.22232504440248,79.0,213.0,0.071425,0.01661116252220124,2000.0,0.0
+nuswide,50,103.6,29.15615942906509,36.0,181.0,0.024188652813448522,0.006807415229760703,4283.0,0.0
+openimages,60,252.93333333333334,33.71961490554913,167.0,309.0,0.06323333333333332,0.008429903726387283,4000.0,0.0
