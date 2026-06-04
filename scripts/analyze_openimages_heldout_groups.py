@@ -104,7 +104,7 @@ def summarize(rows: list[dict]) -> list[dict]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/openimages_5k_heldout_ultrastrict.yaml")
+    parser.add_argument("--config", default="configs/openimages_10k_heldout_ultrastrict.yaml")
     parser.add_argument("--heldout-dir", required=True)
     parser.add_argument("--output-dir")
     args = parser.parse_args()

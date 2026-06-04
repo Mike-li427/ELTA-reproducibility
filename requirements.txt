@@ -4,6 +4,7 @@ tqdm
 numpy
 PyYAML
 scikit-learn
+scipy
 Pillow
 torch
 torchvision

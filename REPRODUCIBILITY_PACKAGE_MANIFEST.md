@@ -1,6 +1,6 @@
 # Reproducibility Package Manifest
 
-This anonymous review package supports the paper **Confidence-Aware Reliability Gating for Tail-Emerging Confusion in Open-Vocabulary Multi-Label Recognition**.
+This journal-facing reproducibility package supports the paper **Knowledge-Base Reliability Gating for Tail-Emerging Confusion in Open-Vocabulary Multi-Label Recognition**.
 
 The package is designed for two review tasks:
 
@@ -46,13 +46,13 @@ The audit covers these result groups:
 
 | Claim group | Checked processed results |
 |---|---|
-| Open Images 10k main held-out protocol | `results/openimages_10k/main_method_12config_summary.csv`, `results/openimages_10k/training_baseline_12config_summary.csv` |
-| COCO val2017 main held-out protocol | `results/coco_val2017/main_method_12config_summary.csv`, `results/coco_val2017/training_baseline_12config_summary.csv` |
+| Open Images 10k main held-out protocol | `results/openimages_10k/main_method_12config_summary.csv`, `results/openimages_10k/main_per_config_rows.csv`, `results/openimages_10k/training_baseline_12config_summary.csv` |
+| COCO val2017 main held-out protocol | `results/coco_val2017/main_method_12config_summary.csv`, `results/coco_val2017/main_per_config_rows.csv`, `results/coco_val2017/training_baseline_12config_summary.csv` |
 | Open Images gate ablation | `results/openimages_10k/gate_ablation_12config_summary.csv` |
 | Open Images calibration-size sensitivity | `results/openimages_10k/calibration_size_12config_summary.csv` |
 | Open Images calibration-ratio sensitivity | `results/supplementary/calibration_ratio_summary.csv` |
 | ASL+gate add-on | `results/openimages_10k/asl_gate_summary.csv`, `results/coco_val2017/asl_gate_summary.csv`, `results/nuswide/asl_gate_10config_summary.csv` |
-| NUS-WIDE stress test and supplementary suite | `results/nuswide/main_summary_10config.csv`, `results/nuswide/training_baseline_10config_summary.csv`, `results/nuswide/frequency_group_10config_summary.csv`, `results/nuswide/gate_ablation_10config_summary.csv` |
+| NUS-WIDE stress test and supplementary suite | `results/nuswide/main_summary_10config.csv`, `results/nuswide/main_per_config_rows.csv`, `results/nuswide/training_baseline_10config_summary.csv`, `results/nuswide/frequency_group_10config_summary.csv`, `results/nuswide/gate_ablation_10config_summary.csv` |
 | TECR definition robustness | `results/supplementary/tecr_robustness_summary.csv` |
 | Alternative post-hoc and selective baselines | `results/supplementary/posthoc_combined_summary.csv`, `results/supplementary/odin_combined_summary.csv` |
 | Known-context logistic controls | `results/supplementary/known_aware_combined_summary.csv` |
@@ -84,8 +84,8 @@ The released main protocol uses configuration-level units:
 
 | Dataset | Class-split configs | Image seeds | Config count | Primary processed result |
 |---|---|---|---:|---|
-| Open Images 10k | `configs/openimages_10k_heldout_ultrastrict.yaml`, `configs/openimages_10k_heldout_ultrastrict_classB.yaml` | `20260522` to `20260527` | 12 | `results/openimages_10k/main_method_12config_summary.csv` |
-| COCO val2017 | `configs/coco_heldout_ultrastrict.yaml`, `configs/coco_heldout_ultrastrict_classB.yaml` | `20260522` to `20260527` | 12 | `results/coco_val2017/main_method_12config_summary.csv` |
+| Open Images 10k | `configs/openimages_10k_heldout_ultrastrict.yaml`, `configs/openimages_10k_heldout_ultrastrict_classB.yaml` | `20260522` to `20260527` | 12 | `results/openimages_10k/main_method_12config_summary.csv`, `results/openimages_10k/main_per_config_rows.csv` |
+| COCO val2017 | `configs/coco_heldout_ultrastrict.yaml`, `configs/coco_heldout_ultrastrict_classB.yaml` | `20260522` to `20260527` | 12 | `results/coco_val2017/main_method_12config_summary.csv`, `results/coco_val2017/main_per_config_rows.csv` |
 | NUS-WIDE stress test | `configs/nuswide_heldout_ultrastrict.yaml`, `configs/nuswide_heldout_ultrastrict_classB.yaml` | `20260522` to `20260526` | 10 | `results/nuswide/main_summary_10config.csv`, `results/nuswide/main_per_config_rows.csv` |
 
 The config-internal protocol split seeds are `20260522` to `20260526`. For Open Images and COCO, the 12-configuration matrix is formed by two class-split configs and six image seeds. For NUS-WIDE, the 10-configuration matrix is formed by two class-split configs and five image seeds.
@@ -98,14 +98,16 @@ The Wilcoxon script is:
 scripts/wilcoxon_descriptive_pvalues.py
 ```
 
-For the released NUS-WIDE 10-configuration rows, the default descriptive check is:
+For the released configuration-level rows, the descriptive checks are:
 
 ```bash
+python scripts/wilcoxon_descriptive_pvalues.py --input results/openimages_10k/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
+python scripts/wilcoxon_descriptive_pvalues.py --input results/coco_val2017/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
 python scripts/wilcoxon_descriptive_pvalues.py --input results/nuswide/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
 ```
 
-The paired unit is the configuration-level result: class-split set by image seed. Do not treat split-level rows as independent observations. For Open Images and COCO, first regenerate or provide the 12 per-configuration output directories, then use `--input-glob` over the per-run `calibrated_baseline_summary.csv` files with `--unit-cols source`.
+The paired unit is the configuration-level result: class-split set by image seed. Do not treat split-level rows as independent observations. If reviewers regenerate the Open Images or COCO per-configuration output directories, the same script can also be run with `--input-glob` over the per-run `calibrated_baseline_summary.csv` files and `--unit-cols source`.
 
-## Anonymous-Review Boundary
+## Review and Release-Metadata Boundary
 
-The package should remain author-anonymized during review. Repository URLs, author names, institution metadata, and camera-ready release identifiers should be added only to a public non-anonymous artifact. The included processed results and manifests are sufficient for the processed-result audit, while full reruns depend on public datasets and externally obtained caches/checkpoints as described above.
+This package is prepared for journal-facing release metadata. Author names are present in `CITATION.cff`, but personal email addresses are intentionally omitted from the public artifact. Repository URLs, DOI fields, and final release identifiers should be completed according to the journal's submission and research-data workflow. The included processed results and manifests are sufficient for the processed-result audit, while full reruns depend on public datasets and externally obtained caches/checkpoints as described above.

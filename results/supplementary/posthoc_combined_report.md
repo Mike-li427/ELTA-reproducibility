@@ -11,4 +11,4 @@ Output directory: `outputs/openimages_posthoc_baselines_20260528_2310_full`
 | entropy_reject | 12 | 0.8513 +/- 0.0077 | 0.7710 +/- 0.0078 | 0.2562 +/- 0.0209 | 0.7493 +/- 0.0319 | 0.8298 +/- 0.0184 | -0.06% | -0.05% | 1.1% |
 | elta_confidence_heldout | 12 | 0.8520 +/- 0.0075 | 0.7704 +/- 0.0068 | 0.2126 +/- 0.0218 | 0.6970 +/- 0.0339 | 0.8021 +/- 0.0166 | 0.02% | -0.12% | 18.0% |
 
-Temperature scaling is fit by calibration NLL. Split conformal reports prediction-set activation against TECR and coverage. MaxLogit/MCM-style rejection uses the strongest known-label CLIP logit as an image-level in-distribution score, illustrating the granularity mismatch between OOD rejection and label-level TECR.
+Temperature scaling is fit by calibration NLL. Split conformal reports prediction-set activation against TECR and coverage. MaxLogit/MCM-style rejection uses the strongest known-label CLIP logit as an image-level in-distribution score, illustrating the granularity mismatch between OOD rejection and route-level TECR.

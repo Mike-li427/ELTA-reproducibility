@@ -215,12 +215,12 @@ def write_report(path: Path, baseline: dict, best: dict, matched: list[dict]) ->
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/openimages_2k_refine3.yaml")
+    parser.add_argument("--config", default="configs/openimages_10k_heldout_ultrastrict.yaml")
     parser.add_argument("--output-dir")
     args = parser.parse_args()
 
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
-    output_dir = Path(args.output_dir) if args.output_dir else Path(cfg.get("margin_output_dir", "outputs/openimages_2k_margin"))
+    output_dir = Path(args.output_dir) if args.output_dir else Path(cfg.get("margin_output_dir", "outputs/openimages_10k_margin"))
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "config_used.yaml").write_text(yaml.safe_dump(cfg, sort_keys=False), encoding="utf-8")
 

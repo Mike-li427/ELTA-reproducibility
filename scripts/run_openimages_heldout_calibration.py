@@ -212,8 +212,8 @@ def select_setting(
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="configs/openimages_5k_confidence.yaml")
-    parser.add_argument("--output-dir", default="outputs/openimages_5k_heldout_calibration")
+    parser.add_argument("--config", default="configs/openimages_10k_heldout_ultrastrict.yaml")
+    parser.add_argument("--output-dir", default="outputs/openimages_10k_heldout_calibration")
     parser.add_argument("--seed-override", type=int)
     args = parser.parse_args()
 

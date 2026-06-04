@@ -3,8 +3,10 @@ title: "ELTA Reproducibility Artifact"
 message: "If you use this artifact, please cite the associated paper."
 type: software
 authors:
-  - family-names: "Anonymous"
-    given-names: "Author"
+  - family-names: "Li"
+    given-names: "Hanzhe"
+  - family-names: "Zhou"
+    given-names: "Xianchun"
 version: "0.1.0"
-date-released: "2026-05-28"
+date-released: "2026-06-03"
 license: MIT

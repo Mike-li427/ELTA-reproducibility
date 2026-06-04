@@ -4,6 +4,7 @@ import argparse
 import csv
 from dataclasses import dataclass, field
 from pathlib import Path
+from statistics import mean
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,12 +16,30 @@ class CsvExpectation:
     columns: tuple[str, ...] = ()
     methods: tuple[str, ...] = ()
     numeric: tuple["NumericExpectation", ...] = field(default_factory=tuple)
+    paired: tuple["PairedExpectation", ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
 class NumericExpectation:
     match: tuple[tuple[str, str], ...]
     values: tuple[tuple[str, float], ...]
+    tolerance: float = 5e-4
+
+
+@dataclass(frozen=True)
+class PairedExpectation:
+    unit_cols: tuple[str, ...]
+    metric: str
+    baseline_method: str
+    method: str
+    expected_pairs: int
+    expected_positive: int
+    expected_negative: int = 0
+    expected_ties: int = 0
+    expected_mean_delta: float | None = None
+    expected_summary_path: str | None = None
+    summary_metric: str | None = None
+    summary_methods: tuple[str, str] | None = None
     tolerance: float = 5e-4
 
 
@@ -67,6 +86,24 @@ CHECKS: tuple[ClaimCheck, ...] = (
                 ),
             ),
             CsvExpectation(
+                "results/openimages_10k/main_per_config_rows.csv",
+                columns=("dataset", "split_set", "seed", "source", "method", "tecr_mean"),
+                methods=("clip_knn_global_threshold", "heldout_gate_global_threshold"),
+                paired=(
+                    PairedExpectation(
+                        unit_cols=("split_set", "seed"),
+                        metric="tecr_mean",
+                        baseline_method="clip_knn_global_threshold",
+                        method="heldout_gate_global_threshold",
+                        expected_pairs=12,
+                        expected_positive=12,
+                        expected_mean_delta=0.04665273949093723,
+                        expected_summary_path="results/openimages_10k/main_method_12config_summary.csv",
+                        summary_metric="tecr_mean",
+                    ),
+                ),
+            ),
+            CsvExpectation(
                 "results/openimages_10k/training_baseline_12config_summary.csv",
                 methods=("asl_class_thresholds", "db_loss_class_thresholds"),
                 numeric=(
@@ -104,6 +141,24 @@ CHECKS: tuple[ClaimCheck, ...] = (
                     NumericExpectation((("method", "clip_knn_isotonic_global_threshold"),), (("tecr_mean", 0.2258), ("tecr_reduction_pct", 11.3)), 5e-4),
                     NumericExpectation((("method", "heldout_gate_global_threshold"),), (("average_precision_mean", 0.8805), ("best_f1_mean", 0.7934), ("tecr_mean", 0.1848), ("tecr_reduction_pct", 27.4)), 5e-4),
                     NumericExpectation((("method", "heldout_gate_class_thresholds"),), (("tecr_mean", 0.1840), ("tecr_reduction_pct", 27.7)), 5e-4),
+                ),
+            ),
+            CsvExpectation(
+                "results/coco_val2017/main_per_config_rows.csv",
+                columns=("dataset", "split_set", "seed", "source", "method", "tecr_mean"),
+                methods=("clip_knn_global_threshold", "heldout_gate_global_threshold"),
+                paired=(
+                    PairedExpectation(
+                        unit_cols=("split_set", "seed"),
+                        metric="tecr_mean",
+                        baseline_method="clip_knn_global_threshold",
+                        method="heldout_gate_global_threshold",
+                        expected_pairs=12,
+                        expected_positive=12,
+                        expected_mean_delta=0.06976024181475805,
+                        expected_summary_path="results/coco_val2017/main_method_12config_summary.csv",
+                        summary_metric="tecr_mean",
+                    ),
                 ),
             ),
             CsvExpectation(
@@ -256,6 +311,24 @@ CHECKS: tuple[ClaimCheck, ...] = (
                     NumericExpectation((("method", "clip_knn_isotonic_global_threshold"),), (("tecr_mean", 0.2427), ("tecr_reduction_pct", 5.6)), 5e-4),
                     NumericExpectation((("method", "heldout_gate_global_threshold"),), (("ap_mean", 0.7861), ("f1_mean", 0.7310), ("tecr_mean", 0.1920), ("tecr_reduction_pct", 25.3)), 5e-4),
                     NumericExpectation((("method", "heldout_gate_class_thresholds"),), (("tecr_mean", 0.1995), ("tecr_reduction_pct", 22.4)), 5e-4),
+                ),
+            ),
+            CsvExpectation(
+                "results/nuswide/main_per_config_rows.csv",
+                columns=("split_set", "seed", "method", "tecr"),
+                methods=("clip_knn_global_threshold", "heldout_gate_global_threshold"),
+                paired=(
+                    PairedExpectation(
+                        unit_cols=("split_set", "seed"),
+                        metric="tecr",
+                        baseline_method="clip_knn_global_threshold",
+                        method="heldout_gate_global_threshold",
+                        expected_pairs=10,
+                        expected_positive=10,
+                        expected_mean_delta=0.06510548552594861,
+                        expected_summary_path="results/nuswide/main_summary_10config.csv",
+                        summary_metric="tecr_mean",
+                    ),
                 ),
             ),
             CsvExpectation(
@@ -519,6 +592,78 @@ def check_numeric(expectation: CsvExpectation, rows: list[dict[str, str]]) -> li
     return errors
 
 
+def check_paired(expectation: CsvExpectation, rows: list[dict[str, str]]) -> list[str]:
+    errors: list[str] = []
+    for paired in expectation.paired:
+        grouped: dict[tuple[str, ...], dict[str, float]] = {}
+        for row in rows:
+            try:
+                key = tuple(row[column] for column in paired.unit_cols)
+            except KeyError as exc:
+                errors.append(f"{expectation.path}: missing paired-unit column `{exc.args[0]}`")
+                break
+            method = row.get("method", "")
+            if method not in {paired.baseline_method, paired.method}:
+                continue
+            if paired.metric not in row:
+                errors.append(f"{expectation.path}: missing paired metric column `{paired.metric}`")
+                continue
+            grouped.setdefault(key, {})[method] = parse_number(row[paired.metric])
+        if errors:
+            continue
+
+        deltas: list[float] = []
+        missing_units: list[str] = []
+        for key, values in sorted(grouped.items()):
+            if paired.baseline_method not in values or paired.method not in values:
+                missing_units.append(",".join(key))
+                continue
+            deltas.append(values[paired.baseline_method] - values[paired.method])
+        if missing_units:
+            errors.append(f"{expectation.path}: incomplete paired units: {', '.join(missing_units)}")
+        if len(deltas) != paired.expected_pairs:
+            errors.append(f"{expectation.path}: expected {paired.expected_pairs} paired units, found {len(deltas)}")
+            continue
+
+        positive = sum(delta > 0.0 for delta in deltas)
+        negative = sum(delta < 0.0 for delta in deltas)
+        ties = len(deltas) - positive - negative
+        if positive != paired.expected_positive or negative != paired.expected_negative or ties != paired.expected_ties:
+            errors.append(
+                f"{expectation.path}: expected paired signs +/{paired.expected_positive} "
+                f"-/{paired.expected_negative} ties/{paired.expected_ties}, found +/{positive} -/{negative} ties/{ties}"
+            )
+
+        if paired.expected_mean_delta is not None:
+            actual_mean_delta = mean(deltas)
+            if abs(actual_mean_delta - paired.expected_mean_delta) > paired.tolerance:
+                errors.append(
+                    f"{expectation.path}: expected mean paired delta {paired.expected_mean_delta} "
+                    f"within {paired.tolerance}, found {actual_mean_delta}"
+                )
+
+        if paired.expected_summary_path and paired.summary_metric:
+            summary_rows = read_csv_rows(ROOT / paired.expected_summary_path)
+            summary_methods = paired.summary_methods or (paired.baseline_method, paired.method)
+            for method in summary_methods:
+                row_values = [parse_number(row[paired.metric]) for row in rows if row.get("method") == method]
+                matched = [row for row in summary_rows if row.get("method") == method]
+                if not matched:
+                    errors.append(f"{paired.expected_summary_path}: missing method `{method}` for paired-row cross-check")
+                    continue
+                if paired.summary_metric not in matched[0]:
+                    errors.append(f"{paired.expected_summary_path}: missing summary metric `{paired.summary_metric}`")
+                    continue
+                actual = mean(row_values)
+                expected = parse_number(matched[0][paired.summary_metric])
+                if abs(actual - expected) > paired.tolerance:
+                    errors.append(
+                        f"{expectation.path}: mean {paired.metric} for `{method}` is {actual}, "
+                        f"but {paired.expected_summary_path} reports {expected}"
+                    )
+    return errors
+
+
 def check_csv(expectation: CsvExpectation) -> list[str]:
     path = ROOT / expectation.path
     errors: list[str] = []
@@ -537,6 +682,7 @@ def check_csv(expectation: CsvExpectation) -> list[str]:
             if method not in found:
                 errors.append(f"{expectation.path}: missing method `{method}`")
     errors.extend(check_numeric(expectation, rows))
+    errors.extend(check_paired(expectation, rows))
     return errors
 
 

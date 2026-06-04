@@ -1,8 +1,17 @@
 # ELTA Reproducibility Artifact
 
-This anonymous private review artifact supports the paper **Confidence-Aware Reliability Gating for Tail-Emerging Confusion in Open-Vocabulary Multi-Label Recognition**.
+This journal-facing reproducibility artifact supports the paper **Knowledge-Base Reliability Gating for Tail-Emerging Confusion in Open-Vocabulary Multi-Label Recognition**.
 
 The code evaluates a post-hoc held-out confidence gate for reducing Tail-Emerging Confusion Rate (TECR) in open-vocabulary multi-label recognition. The repository contains the core TECR/gate implementation, experiment scripts, protocol configs, NUS-WIDE exact image/class manifests, and processed summary CSVs used to check the main paper tables.
+
+## Quick Review
+
+- Purpose: a compact reproducibility artifact for checking the reported frozen-feature, post-hoc reliability-gating results.
+- Fastest checks: run `python scripts/print_main_tables.py` and `python scripts/audit_reproducibility.py`; both read only `results/`.
+- Config-level TECR checks: the released rows under `results/*/main_per_config_rows.csv` support the descriptive Wilcoxon commands below without raw images or CLIP caches.
+- Main processed-result finding: the held-out gate reduces TECR by `18.0%` on Open Images 10k, `27.4%` on COCO val2017, and `25.3%` on NUS-WIDE.
+- Not included: raw datasets, downloaded images, large CLIP feature caches, model checkpoints, and MKT checkpoints.
+- Release boundary: this is a journal-facing author artifact; create a separate anonymized copy if a venue requires double-anonymous review.
 
 ## Repository Layout
 
@@ -17,7 +26,7 @@ REPRODUCIBILITY_PACKAGE_MANIFEST.md
                 Release manifest for included/excluded files and audit coverage.
 ```
 
-See `REPRODUCIBILITY_PACKAGE_MANIFEST.md` for the anonymous-review package boundary, directory-by-directory file-purpose map, excluded raw/cache/checkpoint artifacts, processed-result audit coverage, and the 12/10 configuration matrices.
+See `REPRODUCIBILITY_PACKAGE_MANIFEST.md` for the package boundary, directory-by-directory file-purpose map, excluded raw/cache/checkpoint artifacts, processed-result audit coverage, and the 12/10 configuration matrices.
 
 ## Environment
 
@@ -26,14 +35,16 @@ Python 3.10+ is recommended.
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+pip install -r requirements-lock.txt
+```
+
+For a looser development environment, use:
+
+```bash
 pip install -r requirements.txt
 ```
 
-For a review-time pinned environment, use:
-
-```bash
-pip install -r requirements-lock.txt
-```
+`requirements-lock.txt` pins the OpenAI CLIP dependency to a fixed commit. `requirements.txt` intentionally leaves it as a floating repository dependency for local development.
 
 The original experiments used frozen CLIP ViT-B/32 unless otherwise noted. GPU is recommended for feature extraction, but the post-hoc gate itself is lightweight.
 
@@ -67,21 +78,21 @@ CLIP feature caches are intentionally not committed because they may be large an
 
 There are three distinct reproduction modes:
 
-- **Processed-result audit, no raw data/cache required:** `python scripts/print_main_tables.py`, `python scripts/audit_reproducibility.py`, and the default NUS-WIDE Wilcoxon command below read only files already under `results/`.
+- **Processed-result audit, no raw data/cache required:** `python scripts/print_main_tables.py` and `python scripts/audit_reproducibility.py` read only files already under `results/`. The configuration-level Wilcoxon commands below also read only `results/`, but they require the SciPy dependency declared in `requirements.txt` and pinned in `requirements-lock.txt`.
 - **Scripts that require existing CLIP feature caches:** the Open Images held-out/gate/ablation/post-hoc/training scripts use `load_cached_arrays(...)` and expect cache files under the config's `output_dir` or `feature_cache_dir`. Generate the Open Images cache first with:
 
 ```bash
-python scripts/run_openimages_pilot.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_10k_confidence --cache-only
+python scripts/run_openimages_pilot.py --config configs/openimages_10k_heldout_ultrastrict.yaml --cache-only
 ```
 
 - **Scripts that can regenerate caches from public data:** COCO held-out runs call `load_or_compute_features(...)`; NUS-WIDE full-suite runs call `load_or_compute_nuswide_features(...)`. These can populate caches when public data/manifests are present:
 
 ```bash
-python scripts/run_coco_pilot.py --config configs/coco_heldout_ultrastrict.yaml --output-dir outputs/coco_heldout_cache --cache-only
+python scripts/run_coco_pilot.py --config configs/coco_heldout_ultrastrict.yaml --cache-only
 python scripts/run_nuswide_full_suite.py --config configs/nuswide_heldout_ultrastrict.yaml --seed-override 20260522 --output-dir outputs/nuswide_heldout_ultrastrict_s20260522
 ```
 
-Open Images and COCO cache locations are shared across classA/classB configs because the image pool, class list, and CLIP model are the same; classA/classB only changes the protocol split seeds. NUS-WIDE caches are keyed by `image_pool_seed`, max images, class count, and CLIP model.
+Open Images and COCO cache locations are read from the selected config file and are shared across classA/classB configs because the image pool, class list, and CLIP model are the same; classA/classB changes the config-internal `protocol.split_seeds`. NUS-WIDE caches are keyed by `image_pool_seed`, max images, class count, and CLIP model. In the matrix commands below, `--seed-override` is the configuration-level image/run seed; `protocol.split_seeds` are the split seeds used inside each configuration. The classB configs intentionally use the `202606xx` internal split-seed series.
 
 ## Quick Check: Print Main Tables
 
@@ -117,7 +128,9 @@ python scripts/summarize_tecr_denominators.py --output-dir outputs/tecr_denomina
 python scripts/run_openimages_mkt_baseline.py --config configs/openimages_10k_vitb16_heldout.yaml --output-dir outputs/openimages_mkt_baseline --mkt-root /path/to/MKT --first-stage-ckpt /path/to/mkt_nus_first_stage.pth --second-stage-ckpt /path/to/mkt_nus_second_stage.pth
 ```
 
-The paper reports averages over two class-split sets and multiple image seeds. The 12 Open Images and COCO configurations are classA/classB by six image seeds; the 10 NUS-WIDE configurations are classA/classB by five image seeds.
+For the MKT command, replace the placeholder paths with a local checkout of the official MKT repository and locally obtained public checkpoint files.
+
+The paper reports averages over two class-split sets and multiple image seeds. The 12 Open Images and COCO configurations are classA/classB by six image/run seeds; the 10 NUS-WIDE configurations are classA/classB by five image/run seeds.
 
 ### Open Images 12-Configuration Matrix
 
@@ -184,7 +197,7 @@ foreach ($run in $runs) {
 python scripts/summarize_nuswide_full_suite.py --glob "outputs/nuswide_heldout_ultrastrict_*/" --output-dir outputs/nuswide_10config_summary
 ```
 
-The released NUS-WIDE config-level rows corresponding to this matrix are `results/nuswide/main_per_config_rows.csv`.
+The released config-level rows corresponding to these matrices are `results/openimages_10k/main_per_config_rows.csv`, `results/coco_val2017/main_per_config_rows.csv`, and `results/nuswide/main_per_config_rows.csv`.
 
 Row-level CSVs and JSON metadata under `results/supplementary/` are included for traceability of the known-context controls and TECR denominator audit.
 
@@ -199,10 +212,10 @@ python scripts/run_openimages_calibration_ratio_sensitivity.py --config configs/
 python scripts/run_asl_gate_baselines.py --dataset openimages --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/asl_gate_openimages
 python scripts/run_tecr_robustness.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/tecr_robustness_openimages
 python scripts/run_openimages_odin_baseline.py --config configs/openimages_10k_heldout_ultrastrict.yaml --output-dir outputs/openimages_odin
-python scripts/summarize_gate_parameter_stability.py --audit-root outputs_or_audit_root --output-dir outputs/gate_parameter_stability
+python scripts/summarize_gate_parameter_stability.py --audit-root . --output-dir outputs/gate_parameter_stability
 ```
 
-After running per-configuration jobs, use the corresponding `summarize_*` scripts to aggregate to 12-configuration or 10-configuration CSVs. The processed CSVs shipped under `results/` are the values used for manuscript and supplementary table checks.
+After running per-configuration jobs, use the corresponding `summarize_*` scripts to aggregate to 12-configuration or 10-configuration CSVs. For gate-parameter stability, `--audit-root` should point to the parent directory containing `outputs/openimages_10k_heldout_ultrastrict*/` and `outputs/coco_heldout_ultrastrict*/`. The processed CSVs shipped under `results/` are the values used for manuscript and supplementary table checks.
 
 For the NUS-WIDE 10-configuration suite, aggregate the per-configuration `run_nuswide_full_suite.py` outputs with:
 
@@ -210,19 +223,32 @@ For the NUS-WIDE 10-configuration suite, aggregate the per-configuration `run_nu
 python scripts/summarize_nuswide_full_suite.py --glob "outputs/nuswide_heldout_ultrastrict*/" --output-dir outputs/nuswide_10config_summary
 ```
 
+For per-configuration supplementary baselines that write one output directory per config/seed, combine the generated directories with the script-level `--combine-root` entry points:
+
+```bash
+python scripts/run_openimages_posthoc_baselines.py --combine-root outputs/openimages_posthoc_12config
+python scripts/run_openimages_odin_baseline.py --combine-root outputs/openimages_odin_12config
+python scripts/run_known_aware_posthoc_baselines.py --output-dir outputs/known_aware_combined --combine-root outputs/known_aware_all_datasets
+python scripts/run_openimages_mkt_baseline.py --combine-root outputs/openimages_mkt_12config
+```
+
+For the known-context controls, `--combine-root` should point to a parent directory containing the Open Images, COCO, and NUS-WIDE per-configuration `known_aware_eval_rows.csv` files. For MKT, the combine step reads per-configuration `mkt_summary.csv` files and does not require checkpoint files again.
+
 ## Descriptive Wilcoxon P-Value Check
 
 Wilcoxon signed-rank p values are descriptive reproduction checks, not split-level significance claims. The paired unit is the **configuration-level** result: class split set by image seed. Do not treat the five protocol splits inside a configuration as independent observations.
 
-The default entry point uses the released NUS-WIDE 10-configuration rows and tests whether TECR is lower for the held-out gate than CLIP+kNN. The script forms deltas as `clip_knn_global_threshold - heldout_gate_global_threshold`, so the one-sided alternative is `greater`. Zero deltas are handled with SciPy's `zero_method='wilcox'`, which drops zero differences; use `--zero-method pratt` or `--zero-method zsplit` only as a sensitivity check.
+The released Open Images, COCO, and NUS-WIDE config-level rows test whether TECR is lower for the held-out gate than CLIP+kNN. The script forms deltas as `clip_knn_global_threshold - heldout_gate_global_threshold`, so the one-sided alternative is `greater`. Zero deltas are handled with SciPy's `zero_method='wilcox'`, which drops zero differences; use `--zero-method pratt` or `--zero-method zsplit` only as a sensitivity check.
 
 ```bash
+python scripts/wilcoxon_descriptive_pvalues.py --input results/openimages_10k/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
+python scripts/wilcoxon_descriptive_pvalues.py --input results/coco_val2017/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
 python scripts/wilcoxon_descriptive_pvalues.py --input results/nuswide/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
 ```
 
-The command reports the installed SciPy version and the exact `scipy.stats.wilcoxon(...)` call. In the review-time environment used here, `python -c "import scipy; print(scipy.__version__)"` reports SciPy `1.17.1`.
+The command reports the installed SciPy version and the exact `scipy.stats.wilcoxon(...)` call. SciPy is required for this script and is pinned in `requirements-lock.txt`.
 
-For Open Images/COCO, first generate the 12 configuration directories above; each run writes one configuration-level `calibrated_baseline_summary.csv`. Then run the same script over the per-run summary glob, using the parent directory name as the configuration-level unit:
+If reviewers regenerate the 12 Open Images or COCO configuration directories, they can also run the same script over the per-run summary glob, using the parent directory name as the configuration-level unit:
 
 ```bash
 python scripts/wilcoxon_descriptive_pvalues.py --input-glob "outputs/openimages_10k_heldout_ultrastrict_*/calibrated_baseline_summary.csv" --unit-cols source --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater
@@ -290,6 +316,6 @@ This is a cross-protocol sanity check using public NUS-WIDE MKT checkpoints with
 - The gate is a post-hoc reliability layer and can be applied on top of different scorers.
 - NUS-WIDE raw URL availability may drift over time; use the included exact image-name list for comparison with the reported subset.
 
-## Anonymous-review policy
+## Review and Release Metadata
 
-During anonymous review, repository URLs and author-identifying metadata should remain private or anonymized. Replace the placeholder release information only in the non-anonymous camera-ready/public artifact.
+Before journal upload, align repository URLs, DOI fields, and release information with the metadata requirements of the target journal. This package is prepared for journal-facing release metadata; author names are present in `CITATION.cff`, but personal email addresses are intentionally omitted from the public artifact. If an anonymized reproducibility artifact is requested by another venue, create a separate anonymized copy with `.git` metadata/remotes and author-identifying fields removed.

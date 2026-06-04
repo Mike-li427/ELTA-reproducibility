@@ -619,7 +619,7 @@ def combine_results(root_dir: Path) -> None:
         )
     lines.extend([
         "",
-        "Temperature scaling is fit by calibration NLL. Split conformal reports prediction-set activation against TECR and coverage. MaxLogit/MCM-style rejection uses the strongest known-label CLIP logit as an image-level in-distribution score, illustrating the granularity mismatch between OOD rejection and label-level TECR.",
+        "Temperature scaling is fit by calibration NLL. Split conformal reports prediction-set activation against TECR and coverage. MaxLogit/MCM-style rejection uses the strongest known-label CLIP logit as an image-level in-distribution score, illustrating the granularity mismatch between OOD rejection and route-level TECR.",
         "",
     ])
     (root_dir / "posthoc_combined_report.md").write_text("\n".join(lines), encoding="utf-8")

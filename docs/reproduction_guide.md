@@ -45,6 +45,8 @@ Configs in this artifact use portable `data/...` roots. The protocol fields are 
 9. Run the summarization scripts to aggregate per-configuration outputs. For NUS-WIDE, use `scripts/summarize_nuswide_full_suite.py` to aggregate the 10 per-configuration full-suite outputs.
 10. Compare generated summary CSVs with `results/`.
 
+The `--seed-override` option in the matrix commands is the configuration-level image/run seed. The `protocol.split_seeds` values in each config are the internal retrieval/calibration/evaluation split seeds; classB configs intentionally use a separate `202606xx` split-seed series.
+
 The protocol uses:
 
 - retrieval/calibration/evaluation split: 40% / 20% / 40%
@@ -56,8 +58,8 @@ The protocol uses:
 
 | Paper-facing result | Rerun entry point | Processed result |
 |---|---|---|
-| Open Images main gate and calibrated baselines | `run_openimages_heldout_calibration.py`, `run_openimages_calibrated_baselines.py` | `results/openimages_10k/main_method_12config_summary.csv` |
-| COCO main gate and calibrated baselines | `run_coco_heldout_calibration.py` | `results/coco_val2017/main_method_12config_summary.csv` |
+| Open Images main gate and calibrated baselines | `run_openimages_heldout_calibration.py`, `run_openimages_calibrated_baselines.py` | `results/openimages_10k/main_method_12config_summary.csv`, `results/openimages_10k/main_per_config_rows.csv` |
+| COCO main gate and calibrated baselines | `run_coco_heldout_calibration.py` | `results/coco_val2017/main_method_12config_summary.csv`, `results/coco_val2017/main_per_config_rows.csv` |
 | Frozen-feature ASL/DBLoss baselines | `run_openimages_training_baselines.py`, `run_coco_training_baselines.py`, `run_nuswide_full_suite.py` | `results/*/training_baseline_*summary.csv` |
 | Gate ablation | `run_openimages_gate_ablation.py` | `results/openimages_10k/gate_ablation_12config_summary.csv` |
 | Calibration-size sensitivity | `run_openimages_calibration_size_sensitivity.py`, `summarize_calibration_size_sensitivity.py` | `results/openimages_10k/calibration_size_12config_summary.csv` |
@@ -72,6 +74,19 @@ The protocol uses:
 | Gate parameter stability | `summarize_gate_parameter_stability.py` | `results/supplementary/gate_parameter_stability_summary.csv` |
 | ViT-B/16 check | `run_openimages_pilot.py`, `run_openimages_heldout_calibration.py` | `results/supplementary/openimages_vitb16_heldout_summary.csv` |
 | Frequency-group diagnostics and COCO exceptions | `analyze_openimages_heldout_groups.py`, `run_coco_heldout_calibration.py`, `summarize_fairness_diagnostics.py` | `results/supplementary/frequency_group_12config_summary.csv`, `results/supplementary/coco_training_exception_configs.csv` |
+
+## Per-Configuration Combine Entry Points
+
+After regenerating one directory per config/seed, combine the supplementary families with:
+
+```bash
+python scripts/run_openimages_posthoc_baselines.py --combine-root outputs/openimages_posthoc_12config
+python scripts/run_openimages_odin_baseline.py --combine-root outputs/openimages_odin_12config
+python scripts/run_known_aware_posthoc_baselines.py --output-dir outputs/known_aware_combined --combine-root outputs/known_aware_all_datasets
+python scripts/run_openimages_mkt_baseline.py --combine-root outputs/openimages_mkt_12config
+```
+
+The known-aware combine root should contain the Open Images, COCO, and NUS-WIDE per-configuration `known_aware_eval_rows.csv` files. The MKT combine root should contain per-configuration `mkt_summary.csv` files; checkpoint paths are needed only for the per-configuration MKT runs.
 
 ## Post-hoc baseline summary
 
@@ -91,13 +106,15 @@ The denominator audit is in `results/supplementary/tecr_denominator_combined_sum
 
 ## Descriptive Wilcoxon check
 
-The Wilcoxon script is `scripts/wilcoxon_descriptive_pvalues.py`. It is a descriptive processed-result check over configuration-level paired units, not a split-level significance test. For the released NUS-WIDE rows, run:
+The Wilcoxon script is `scripts/wilcoxon_descriptive_pvalues.py`. It is a descriptive processed-result check over configuration-level paired units, not a split-level significance test. For the released configuration-level rows, run:
 
 ```bash
+python scripts/wilcoxon_descriptive_pvalues.py --input results/openimages_10k/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
+python scripts/wilcoxon_descriptive_pvalues.py --input results/coco_val2017/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
 python scripts/wilcoxon_descriptive_pvalues.py --input results/nuswide/main_per_config_rows.csv --unit-cols split_set,seed --metric tecr --baseline-method clip_knn_global_threshold --method heldout_gate_global_threshold --delta baseline_minus_method --alternative greater --zero-method wilcox
 ```
 
-For Open Images and COCO, first regenerate or provide the 12 per-configuration `calibrated_baseline_summary.csv` files, then use `--input-glob` with `--unit-cols source` as shown in the README. The script prints the installed SciPy version and the exact `scipy.stats.wilcoxon(...)` call.
+The Open Images and COCO commands use the released `main_per_config_rows.csv` files, so they do not require raw images, feature caches, or regenerated output directories. If reviewers regenerate the 12 per-configuration `calibrated_baseline_summary.csv` files, they can also use `--input-glob` with `--unit-cols source` as shown in the README. The script prints the installed SciPy version and the exact `scipy.stats.wilcoxon(...)` call; SciPy is required for this script and is pinned in `requirements-lock.txt`.
 
 ## Important boundary
 
