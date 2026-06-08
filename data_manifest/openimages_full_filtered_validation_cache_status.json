@@ -1,0 +1,13 @@
+{
+  "status": "openimages_cache_ready",
+  "time_seconds": 9958.716,
+  "device": "cuda",
+  "cache_hit": false,
+  "requested_max_images": 37591,
+  "resolved_max_images_tag": "37591",
+  "image_pool_scope": "filtered_subset",
+  "num_images_total": 37591,
+  "num_classes": 120,
+  "num_image_ids": 37591,
+  "cache_manifest": "outputs/openimages_fullval_filtered_confidence/cache/openimages_validation_37591_120_ViT-B-32_cache_manifest.json"
+}

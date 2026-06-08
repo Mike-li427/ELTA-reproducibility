@@ -72,6 +72,15 @@ def count_positive_labels(path: Path) -> dict[str, int]:
     return counts
 
 
+def load_selected_label_ids(path: Path) -> list[str]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(payload, list):
+        return [str(item) for item in payload]
+    if isinstance(payload, dict) and isinstance(payload.get("selected_label_ids"), list):
+        return [str(item) for item in payload["selected_label_ids"]]
+    raise ValueError(f"Could not read selected label ids from {path}")
+
+
 def choose_classes(class_names: dict[str, str], counts: dict[str, int], num_classes: int) -> list[str]:
     candidates = [label for label, count in counts.items() if label in class_names and count > 0]
     candidates.sort(key=lambda label: (-counts[label], class_names[label].lower()))
@@ -89,11 +98,57 @@ def build_image_label_index(labels_path: Path, selected_labels: list[str]) -> di
     return image_to_labels
 
 
-def select_images(image_to_labels: dict[str, set[str]], max_images: int, seed: int) -> list[str]:
+def read_validation_image_ids(path: Path) -> list[str]:
+    image_ids: list[str] = []
+    with path.open("r", newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            image_id = row.get("ImageID")
+            if image_id:
+                image_ids.append(image_id)
+    return image_ids
+
+
+def resolve_image_pool_scope(data_cfg: dict) -> str:
+    mode = str(data_cfg.get("image_pool_mode", "positive_only"))
+    max_images = data_cfg.get("max_images")
+    if mode == "full_validation":
+        return "full_validation"
+    if max_images in (None, ""):
+        return "filtered_positive_support_full"
+    return "filtered_subset"
+
+
+def resolve_pool_tag(data_cfg: dict) -> str:
+    max_images = data_cfg.get("max_images")
+    if max_images not in (None, ""):
+        return str(int(max_images))
+    scope = resolve_image_pool_scope(data_cfg)
+    default_tag = "full_validation" if scope == "full_validation" else "positive_support_full"
+    return str(data_cfg.get("pool_tag", default_tag))
+
+
+def build_cache_tag(cfg: dict) -> str:
+    data_cfg = cfg["data"]
+    return (
+        f"openimages_{data_cfg['split']}_{resolve_pool_tag(data_cfg)}_"
+        f"{data_cfg['num_classes']}_{cfg['clip']['model'].replace('/', '-')}"
+    )
+
+
+def select_images(image_to_labels: dict[str, set[str]], image_metadata_path: Path, data_cfg: dict, seed: int) -> list[str]:
+    mode = str(data_cfg.get("image_pool_mode", "positive_only"))
+    max_images = data_cfg.get("max_images")
+    if mode == "full_validation":
+        image_ids = read_validation_image_ids(image_metadata_path)
+        if max_images not in (None, ""):
+            image_ids = image_ids[: int(max_images)]
+        return sorted(image_ids)
     image_ids = [image_id for image_id, labels in image_to_labels.items() if labels]
     rng = random.Random(seed)
     rng.shuffle(image_ids)
-    return sorted(image_ids[:max_images])
+    if max_images not in (None, ""):
+        image_ids = image_ids[: int(max_images)]
+    return sorted(image_ids)
 
 
 def image_url(image_id: str, split: str) -> str:
@@ -197,7 +252,7 @@ def load_or_compute_features(cfg: dict, model, preprocess, device: str, output_d
     root = Path(data_cfg["root"])
     cache_dir = Path(cfg.get("feature_cache_dir", output_dir / "cache"))
     cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_tag = f"openimages_{data_cfg['split']}_{data_cfg['max_images']}_{data_cfg['num_classes']}_{cfg['clip']['model'].replace('/', '-')}"
+    cache_tag = build_cache_tag(cfg)
     feature_cache = cache_dir / f"{cache_tag}_image_features.npy"
     label_cache = cache_dir / f"{cache_tag}_labels.npy"
     text_cache = cache_dir / f"{cache_tag}_text_features.npy"
@@ -216,10 +271,14 @@ def load_or_compute_features(cfg: dict, model, preprocess, device: str, output_d
     paths = ensure_metadata(root)
     class_names = read_class_names(paths["class_descriptions"])
     counts = count_positive_labels(paths["human_labels"])
-    selected_labels = choose_classes(class_names, counts, int(data_cfg["num_classes"]))
+    selected_labels_path = data_cfg.get("selected_label_ids_path")
+    if selected_labels_path:
+        selected_labels = load_selected_label_ids(Path(selected_labels_path))
+    else:
+        selected_labels = choose_classes(class_names, counts, int(data_cfg["num_classes"]))
     display_names = [class_names[label] for label in selected_labels]
     image_to_labels = build_image_label_index(paths["human_labels"], selected_labels)
-    selected_image_ids = select_images(image_to_labels, int(data_cfg["max_images"]), int(cfg["seed"]))
+    selected_image_ids = select_images(image_to_labels, paths["image_metadata"], data_cfg, int(cfg["seed"]))
     image_dir = root / data_cfg["split"]
     ok_image_ids = download_images(
         selected_image_ids,
@@ -244,6 +303,29 @@ def load_or_compute_features(cfg: dict, model, preprocess, device: str, output_d
     np.save(text_cache, text_features)
     classes_cache.write_text(json.dumps(display_names, indent=2, ensure_ascii=False), encoding="utf-8")
     image_ids_cache.write_text(json.dumps(ok_image_ids, indent=2), encoding="utf-8")
+    image_pool_scope = resolve_image_pool_scope(data_cfg)
+    manifest = {
+        "status": "openimages_cache_ready",
+        "cache_tag": cache_tag,
+        "cache_hit": False,
+        "data_root": str(data_cfg["root"]),
+        "split": str(data_cfg["split"]),
+        "requested_max_images": data_cfg.get("max_images"),
+        "resolved_max_images_tag": resolve_pool_tag(data_cfg),
+        "image_pool_scope": image_pool_scope,
+        "selected_image_count_before_download": len(selected_image_ids),
+        "num_images_total": len(ok_image_ids),
+        "download_failure_count": len(selected_image_ids) - len(ok_image_ids),
+        "num_classes_requested": int(data_cfg["num_classes"]),
+        "num_classes": len(display_names),
+        "seed": int(cfg["seed"]),
+        "selected_label_ids": selected_labels,
+        "selected_label_names": display_names,
+    }
+    (cache_dir / f"{cache_tag}_cache_manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
     return image_features, labels, text_features, display_names, ok_image_ids, False
 
 
@@ -427,14 +509,22 @@ def main() -> int:
         cfg, model, preprocess, device, output_dir
     )
     if args.cache_only:
+        data_cfg = cfg["data"]
         result = {
             "status": "openimages_cache_ready",
             "time_seconds": round(time.time() - start, 3),
             "device": device,
             "cache_hit": cache_hit,
+            "requested_max_images": data_cfg.get("max_images"),
+            "resolved_max_images_tag": resolve_pool_tag(data_cfg),
+            "image_pool_scope": resolve_image_pool_scope(data_cfg),
             "num_images_total": int(labels.shape[0]),
             "num_classes": len(class_names),
             "num_image_ids": len(image_ids),
+            "cache_manifest": str(
+                Path(cfg.get("feature_cache_dir", output_dir / "cache"))
+                / f"{build_cache_tag(cfg)}_cache_manifest.json"
+            ),
         }
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
@@ -510,10 +600,16 @@ def main() -> int:
 
     result = {
         "status": "openimages_pilot_complete",
-        "warning": "Open Images validation subset pilot; not a full paper result.",
+        "warning": (
+            "Open Images full-validation image-pool probe under the current 120-label slice."
+            if resolve_image_pool_scope(cfg["data"]) == "full_validation"
+            else "Open Images validation subset pilot; not a full paper result."
+        ),
         "time_seconds": round(time.time() - start, 3),
         "device": device,
         "cache_hit": cache_hit,
+        "image_pool_scope": resolve_image_pool_scope(cfg["data"]),
+        "resolved_max_images_tag": resolve_pool_tag(cfg["data"]),
         "num_images_total": int(labels.shape[0]),
         "num_retrieval_images": int(retrieval_labels.shape[0]),
         "num_eval_images": int(eval_labels.shape[0]),

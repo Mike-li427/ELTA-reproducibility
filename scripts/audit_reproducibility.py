@@ -51,6 +51,9 @@ class ClaimCheck:
     results: tuple[str, ...] = ()
     csv: tuple[CsvExpectation, ...] = field(default_factory=tuple)
     note: str = ""
+    optional: bool = False
+    optional_activation_paths: tuple[str, ...] = ()
+    pending_note: str = ""
 
 
 CHECKS: tuple[ClaimCheck, ...] = (
@@ -291,7 +294,7 @@ CHECKS: tuple[ClaimCheck, ...] = (
         ),
     ),
     ClaimCheck(
-        name="NUS-WIDE stress test and supplementary suite",
+        name="NUS-WIDE recoverable-subset check and supplementary suite",
         scripts=("scripts/run_nuswide_full_suite.py", "scripts/summarize_nuswide_full_suite.py", "scripts/nuswide_common.py"),
         configs=(
             "configs/nuswide_heldout_ultrastrict.yaml",
@@ -476,6 +479,106 @@ CHECKS: tuple[ClaimCheck, ...] = (
             ),
         ),
         note="Requires external MKT checkout and public checkpoint files.",
+    ),
+    ClaimCheck(
+        name="Larger filtered Open Images validation-subset sanity check",
+        results=(
+            "results/supplementary/openimages_full_filtered_validation_sanity_report.md",
+            "results/supplementary/openimages_full_filtered_validation_provenance",
+            "results/supplementary/openimages_full_filtered_validation_provenance/README.md",
+            "data_manifest/openimages_full_filtered_validation_image_ids.json",
+            "data_manifest/openimages_full_filtered_validation_cache_manifest.json",
+            "data_manifest/openimages_full_filtered_validation_cache_status.json",
+        ),
+        csv=(
+            CsvExpectation(
+                "results/supplementary/openimages_full_filtered_validation_sanity_summary.csv",
+                columns=(
+                    "method",
+                    "num_configs",
+                    "average_precision_mean",
+                    "best_f1_mean",
+                    "tecr_mean",
+                    "tecr_reduction_pct",
+                ),
+                methods=("clip_knn_global_threshold", "heldout_gate_global_threshold"),
+            ),
+            CsvExpectation(
+                "results/supplementary/openimages_full_filtered_validation_sanity_per_config.csv",
+                columns=("dataset", "split_set", "seed", "source", "method", "tecr_mean"),
+                methods=("clip_knn_global_threshold", "heldout_gate_global_threshold"),
+                paired=(
+                    PairedExpectation(
+                        unit_cols=("split_set", "seed"),
+                        metric="tecr_mean",
+                        baseline_method="clip_knn_global_threshold",
+                        method="heldout_gate_global_threshold",
+                        expected_pairs=12,
+                        expected_positive=12,
+                        expected_mean_delta=0.0288096413171905,
+                        expected_summary_path="results/supplementary/openimages_full_filtered_validation_sanity_summary.csv",
+                        summary_metric="tecr_mean",
+                    ),
+                ),
+            ),
+        ),
+        note="This bundled scale check is schema-audited through its summary, per-config rows, reviewer report, retained-pool manifest, cache-metadata manifests, documented provenance directory, and expected 12/12 TECR directionality. It broadens the Open Images scope without replacing the controlled 10k benchmark.",
+        optional=True,
+        optional_activation_paths=("results/supplementary/openimages_full_filtered_validation_sanity_summary.csv",),
+        pending_note="Reviewer-facing filtered-validation subset-check files are not bundled in this package.",
+    ),
+    ClaimCheck(
+        name="Complete Open Images validation release",
+        configs=(
+            "configs/openimages_complete_validation_heldout_ultrastrict.yaml",
+            "configs/openimages_complete_validation_heldout_ultrastrict_classB.yaml",
+        ),
+        results=(
+            "results/supplementary/openimages_complete_validation_report.md",
+            "results/supplementary/openimages_complete_validation_provenance",
+            "data_manifest/openimages_complete_validation_cache_manifest.json",
+            "data_manifest/openimages_selected_label_ids_top120.json",
+        ),
+        csv=(
+            CsvExpectation(
+                "results/supplementary/openimages_complete_validation_summary.csv",
+                columns=(
+                    "method",
+                    "num_configs",
+                    "average_precision_mean",
+                    "best_f1_mean",
+                    "tecr_mean",
+                    "tecr_reduction_pct",
+                ),
+                methods=("clip_knn_global_threshold", "heldout_gate_global_threshold"),
+                numeric=(
+                    NumericExpectation((("method", "clip_knn_global_threshold"),), (("num_configs", 12), ("average_precision_mean", 0.8589), ("best_f1_mean", 0.7774), ("tecr_mean", 0.2241), ("tecr_reduction_pct", 0.0)), 5e-4),
+                    NumericExpectation((("method", "heldout_gate_global_threshold"),), (("num_configs", 12), ("average_precision_mean", 0.8588), ("best_f1_mean", 0.7763), ("tecr_mean", 0.1914), ("tecr_reduction_pct", 14.6)), 5e-4),
+                ),
+            ),
+            CsvExpectation(
+                "results/supplementary/openimages_complete_validation_per_config.csv",
+                columns=("dataset", "split_set", "seed", "source", "method", "tecr_mean"),
+                methods=("clip_knn_global_threshold", "heldout_gate_global_threshold"),
+                paired=(
+                    PairedExpectation(
+                        unit_cols=("split_set", "seed"),
+                        metric="tecr_mean",
+                        baseline_method="clip_knn_global_threshold",
+                        method="heldout_gate_global_threshold",
+                        expected_pairs=12,
+                        expected_positive=12,
+                        expected_mean_delta=0.0327208925274626,
+                        expected_summary_path="results/supplementary/openimages_complete_validation_summary.csv",
+                        summary_metric="tecr_mean",
+                    ),
+                ),
+            ),
+        ),
+        note="This bundled supplementary release uses the complete 41,620-image Open Images validation pool together with a frozen 120-label slice. The audit checks the summary, per-config rows, frozen-manifest files, and run-receipt directory while keeping the slot supplementary rather than promoting it into a new main benchmark.",
+        optional=True,
+        optional_activation_paths=("results/supplementary/openimages_complete_validation_summary.csv",),
+        pending_note="Reviewer-facing complete-validation release files are not bundled in this package.",
     ),
     ClaimCheck(
         name="Gate parameter stability",
@@ -692,9 +795,16 @@ def check_path(kind: str, path: str) -> str | None:
     return None
 
 
-def run_checks() -> list[tuple[ClaimCheck, list[str]]]:
-    results: list[tuple[ClaimCheck, list[str]]] = []
+def is_optional_pending(check: ClaimCheck) -> bool:
+    return check.optional and not any((ROOT / path).exists() for path in check.optional_activation_paths)
+
+
+def run_checks() -> list[tuple[ClaimCheck, str, list[str]]]:
+    results: list[tuple[ClaimCheck, str, list[str]]] = []
     for check in CHECKS:
+        if is_optional_pending(check):
+            results.append((check, "PENDING", [check.pending_note or check.note]))
+            continue
         errors: list[str] = []
         for path in check.scripts:
             error = check_path("script", path)
@@ -710,22 +820,27 @@ def run_checks() -> list[tuple[ClaimCheck, list[str]]]:
                 errors.append(error)
         for expectation in check.csv:
             errors.extend(check_csv(expectation))
-        results.append((check, errors))
+        results.append((check, "PASS" if not errors else "FAIL", errors))
     return results
 
 
-def print_markdown(results: list[tuple[ClaimCheck, list[str]]]) -> None:
+def print_markdown(results: list[tuple[ClaimCheck, str, list[str]]]) -> None:
     print("# Processed-Result Reproducibility Completeness Audit\n")
     print(
         "This audit checks released processed-result CSVs, protocol configs, "
         "scripts, and reported numeric values. It is not a full raw-data rerun "
-        "audit from images or regenerated CLIP features.\n"
+        "audit from images or regenerated CLIP features. Reserved reviewer-facing "
+        "slots can appear as PENDING without failing the audit. When a bundled "
+        "reviewer slot is present, the audit can also check that its provenance "
+        "files and configuration-level directionality are internally coherent.\n"
     )
     print("| Claim group | Status | Details |")
     print("|---|---|---|")
-    for check, errors in results:
-        status = "PASS" if not errors else "FAIL"
-        details = check.note if not errors else "<br>".join(errors)
+    for check, status, details_list in results:
+        if status == "PASS":
+            details = check.note
+        else:
+            details = "<br>".join(details_list)
         print(f"| {check.name} | {status} | {details} |")
 
 
@@ -736,12 +851,14 @@ def main() -> int:
 
     results = run_checks()
     if args.quiet:
-        for check, errors in results:
-            for error in errors:
+        for check, status, details_list in results:
+            if status != "FAIL":
+                continue
+            for error in details_list:
                 print(f"{check.name}: {error}")
     else:
         print_markdown(results)
-    return 1 if any(errors for _, errors in results) else 0
+    return 1 if any(status == "FAIL" for _, status, _ in results) else 0
 
 
 if __name__ == "__main__":

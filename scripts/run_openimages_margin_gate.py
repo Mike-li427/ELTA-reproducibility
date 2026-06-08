@@ -9,6 +9,7 @@ import numpy as np
 import yaml
 
 from run_openimages_pilot import (
+    build_cache_tag,
     build_splits,
     evaluate_scores,
     knn_score_matrix,
@@ -38,12 +39,8 @@ def fmt(value: float | None) -> str:
 
 
 def load_cached_arrays(cfg: dict, output_dir: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str]]:
-    data_cfg = cfg["data"]
     cache_dir = Path(cfg.get("feature_cache_dir", output_dir / "cache"))
-    cache_tag = (
-        f"openimages_{data_cfg['split']}_{data_cfg['max_images']}_"
-        f"{data_cfg['num_classes']}_{cfg['clip']['model'].replace('/', '-')}"
-    )
+    cache_tag = build_cache_tag(cfg)
     paths = {
         "features": cache_dir / f"{cache_tag}_image_features.npy",
         "labels": cache_dir / f"{cache_tag}_labels.npy",

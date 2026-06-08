@@ -2,6 +2,8 @@
 
 This matrix lists every ablation, sensitivity test, and supplementary diagnostic that is claimed by the manuscript or supplementary material. Use `python scripts/audit_reproducibility.py` to check the same coverage and key paper-facing numeric values automatically.
 
+For a quick reviewer pass, especially on Windows, the intended no-raw-data entry point is still `python scripts/print_main_tables.py` followed by `python scripts/audit_reproducibility.py` from the repository root after installing `requirements-lock.txt`.
+
 | Result family | Rerun scripts | Processed-result files |
 |---|---|---|
 | Open Images gate ablation | `scripts/run_openimages_gate_ablation.py` | `results/openimages_10k/gate_ablation_12config_summary.csv` |
@@ -16,9 +18,11 @@ This matrix lists every ablation, sensitivity test, and supplementary diagnostic
 | Known-context logistic controls | `scripts/run_known_aware_posthoc_baselines.py` | `results/supplementary/known_aware_combined_summary.csv`, `results/supplementary/known_aware_combined_report.md` |
 | TECR risk-set denominator audit | `scripts/summarize_tecr_denominators.py` | `results/supplementary/tecr_denominator_combined_summary.csv`, `results/supplementary/tecr_denominator_combined_report.md` |
 | Adapted public MKT checkpoint | `scripts/run_openimages_mkt_baseline.py` | `results/supplementary/mkt_combined_summary.csv` |
+| Larger filtered Open Images validation-subset scope check | `scripts/run_openimages_pilot.py`, `scripts/run_openimages_heldout_calibration.py`, `scripts/run_openimages_calibrated_baselines.py`, `scripts/summarize_openimages_fullval_sanity.py` | `results/supplementary/openimages_full_filtered_validation_sanity_summary.csv`, `results/supplementary/openimages_full_filtered_validation_sanity_per_config.csv`, `results/supplementary/openimages_full_filtered_validation_sanity_report.md`, `results/supplementary/openimages_full_filtered_validation_provenance/` |
+| Complete Open Images validation release | `scripts/run_openimages_pilot.py`, `scripts/run_openimages_heldout_calibration.py`, `scripts/run_openimages_calibrated_baselines.py`, `scripts/summarize_openimages_fullfiltered_sanity.py` | `results/supplementary/openimages_complete_validation_summary.csv`, `results/supplementary/openimages_complete_validation_per_config.csv`, `results/supplementary/openimages_complete_validation_report.md`, `results/supplementary/openimages_complete_validation_provenance/` |
 | Gate parameter stability | `scripts/summarize_gate_parameter_stability.py` | `results/supplementary/gate_parameter_stability_summary.csv` |
 | ViT-B/16 backbone check | `scripts/run_openimages_pilot.py`, `scripts/run_openimages_heldout_calibration.py` | `results/supplementary/openimages_vitb16_heldout_summary.csv` |
 | Frequency-group diagnostics | `scripts/analyze_openimages_heldout_groups.py`, `scripts/run_coco_heldout_calibration.py`, `scripts/summarize_fairness_diagnostics.py` | `results/supplementary/frequency_group_12config_summary.csv`, `results/nuswide/frequency_group_10config_summary.csv` |
 | COCO trained-head exception audit | `scripts/summarize_fairness_diagnostics.py` | `results/supplementary/coco_training_exception_configs.csv` |
 
-The processed-result path is intended for no-raw-data verification. The rerun scripts require raw dataset placement under `data/`, regenerated CLIP feature caches, and, for MKT only, external checkpoint files that are not redistributed here.
+The processed-result path is intended for no-raw-data verification. The rerun scripts require raw dataset placement under `data/`, regenerated CLIP feature caches, and, for MKT only, external checkpoint files that are not redistributed here. For the larger filtered Open Images supplementary slot, the report and provenance directory are part of the expected reviewer-facing completeness bundle even though the slot remains descriptive scope evidence rather than a replacement benchmark or an already-promoted full-validation result. The complete Open Images validation release adds a second reviewer-facing bundle with frozen full-pool cache metadata, frozen label-slice metadata, configuration-level rows, and run receipts, but it also remains supplementary rather than a replacement headline benchmark.

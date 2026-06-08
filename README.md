@@ -1,17 +1,36 @@
-# ELTA Reproducibility Artifact
+# Reproducibility Artifact for Visual Knowledge-Base Maintenance
 
-This journal-facing reproducibility artifact supports the paper **Knowledge-Base Reliability Gating for Tail-Emerging Confusion in Open-Vocabulary Multi-Label Recognition**.
+This journal-facing reproducibility artifact supports the paper **Reducing False Routes in Visual Knowledge-Base Maintenance: A Decision-Layer Reliability Gate**.
 
 The code evaluates a post-hoc held-out confidence gate for reducing Tail-Emerging Confusion Rate (TECR) in open-vocabulary multi-label recognition. The repository contains the core TECR/gate implementation, experiment scripts, protocol configs, NUS-WIDE exact image/class manifests, and processed summary CSVs used to check the main paper tables.
+
+For Open Images, the paper-facing benchmark remains the repeated `10k` validation-subset protocol reported in the manuscript. The repository also bundles two supplementary reviewer-facing checks under the same held-out protocol family: a larger filtered `37,591`-image validation-subset scope check and a complete-validation `41,620`-image release built over the frozen `120`-label slice. Neither check replaces the manuscript's main benchmark tables. The filtered slot remains directional scope evidence, while the complete-validation slot adds a stronger release-time direction check with run receipts and configuration-level outputs. See `docs/openimages_filtered_validation_sanity_check.md`.
 
 ## Quick Review
 
 - Purpose: a compact reproducibility artifact for checking the reported frozen-feature, post-hoc reliability-gating results.
-- Fastest checks: run `python scripts/print_main_tables.py` and `python scripts/audit_reproducibility.py`; both read only `results/`.
+- Fastest checks: run `python scripts/print_main_tables.py` and `python scripts/audit_reproducibility.py` from the repository root; both read only `results/` and the committed manifests.
+- Minimal table-audit environment: Python 3.10+ is sufficient for the two fastest checks. Install SciPy only for the descriptive Wilcoxon scripts. Install `requirements-lock.txt` only for cache-dependent or full rerun workflows.
 - Config-level TECR checks: the released rows under `results/*/main_per_config_rows.csv` support the descriptive Wilcoxon commands below without raw images or CLIP caches.
-- Main processed-result finding: the held-out gate reduces TECR by `18.0%` on Open Images 10k, `27.4%` on COCO val2017, and `25.3%` on NUS-WIDE.
+- Main processed-result finding: the held-out gate reduces TECR by `18.0%` on Open Images 10k, `27.4%` on COCO val2017, and `25.3%` on the NUS-WIDE recoverable-subset stress check.
+- Supplementary scope-check finding: on the larger filtered `37,591`-image Open Images validation subset, the held-out gate reduces TECR from `0.2399` to `0.2111` (`12.0%`) while AP/F1 remain near the CLIP+kNN baseline.
+- Supplementary direction check: in the released larger filtered Open Images per-configuration rows, the held-out gate lowers TECR versus `clip_knn_global_threshold` in all `12/12` class-split-by-seed pairs.
+- Supplementary complete-validation finding: on the complete `41,620`-image Open Images validation release, the held-out gate reduces TECR from `0.2241` to `0.1914` (`14.6%`) while AP is unchanged to three decimals and F1 changes by `-0.1%` relative to the CLIP+kNN global-threshold baseline.
+- Supplementary complete-validation direction check: in the released complete-validation per-configuration rows, the held-out gate lowers TECR versus `clip_knn_global_threshold` in all `12/12` class-split-by-seed pairs.
+- Supplementary provenance: the retained image-id list, cache-definition/status manifests, per-configuration rows, reviewer report, and reserved `results/supplementary/openimages_full_filtered_validation_provenance/` directory together document the origin of the larger-slot evidence without redistributing dataset-derived caches.
+- Supplementary complete-validation provenance: the cache manifest, selected-label manifest, per-configuration rows, reviewer report, and `results/supplementary/openimages_complete_validation_provenance/` run receipts document the full-validation release without redistributing downloaded images or feature arrays.
 - Not included: raw datasets, downloaded images, large CLIP feature caches, model checkpoints, and MKT checkpoints.
 - Release boundary: this is a journal-facing author artifact; create a separate anonymized copy if a venue requires double-anonymous review.
+
+## Open Images Naming Map
+
+| Paper-facing scope | Config prefix | Main processed outputs |
+|---|---|---|
+| Open Images 10k controlled benchmark | `openimages_10k_...` | `results/openimages_10k/*` |
+| Filtered 37,591-image scale check | `openimages_fullval_filtered_...` | `results/supplementary/openimages_full_filtered_validation_sanity_*` |
+| Complete 41,620-image validation check | `openimages_complete_validation_...` | `results/supplementary/openimages_complete_validation_*` |
+
+The older `openimages_fullfiltered_validation_...` names are retained only as compatibility aliases for scripts that predate the final release naming.
 
 ## Repository Layout
 
@@ -19,9 +38,9 @@ The code evaluates a post-hoc held-out confidence gate for reducing Tail-Emergin
 configs/        Protocol configs, seeds, class-split settings, and hyperparameters.
 src/elta/       Minimal core gate, TECR, threshold, and selection utilities.
 scripts/        Full experiment and summary scripts.
-data_manifest/  Exact NUS-WIDE image-name and class lists for the reported subset.
+data_manifest/  Exact NUS-WIDE manifests plus Open Images filtered-subset pool-definition files.
 results/        Processed summary CSVs for main and supplementary tables.
-docs/           Reproduction and data-availability notes.
+docs/           Reproduction, data-availability, and supplementary scope-check notes.
 REPRODUCIBILITY_PACKAGE_MANIFEST.md
                 Release manifest for included/excluded files and audit coverage.
 ```
@@ -42,6 +61,12 @@ For a looser development environment, use:
 
 ```bash
 pip install -r requirements.txt
+```
+
+On Windows PowerShell, activate the environment with:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 ```
 
 `requirements-lock.txt` pins the OpenAI CLIP dependency to a fixed commit. `requirements.txt` intentionally leaves it as a floating repository dependency for local development.
@@ -72,6 +97,25 @@ data_manifest/nuswide_image_names.json
 data_manifest/nuswide_classes.json
 ```
 
+The larger filtered Open Images validation-subset check records its retained image pool and cache-definition metadata in:
+
+```text
+data_manifest/openimages_full_filtered_validation_image_ids.json
+data_manifest/openimages_full_filtered_validation_cache_manifest.json
+data_manifest/openimages_full_filtered_validation_cache_status.json
+```
+
+Together with `results/supplementary/openimages_full_filtered_validation_sanity_per_config.csv`, `results/supplementary/openimages_full_filtered_validation_sanity_report.md`, and the reserved `results/supplementary/openimages_full_filtered_validation_provenance/` directory, these files provide the reviewer-facing provenance chain for the larger filtered Open Images supplementary slot: retained image pool, cache-definition metadata, released per-configuration aggregates, and a stable place to attach future rerun receipts if a full validation slot is later requested.
+
+The complete Open Images validation release records its frozen full-validation cache definition in:
+
+```text
+data_manifest/openimages_complete_validation_cache_manifest.json
+data_manifest/openimages_selected_label_ids_top120.json
+```
+
+Together with `results/supplementary/openimages_complete_validation_summary.csv`, `results/supplementary/openimages_complete_validation_per_config.csv`, `results/supplementary/openimages_complete_validation_report.md`, and `results/supplementary/openimages_complete_validation_provenance/`, these files provide the reviewer-facing provenance chain for the complete-validation supplementary slot: the `41,620`-image validation scope, the fixed `120`-label slice, released per-configuration aggregates, and the run receipts used to produce the local release.
+
 CLIP feature caches are intentionally not committed because they may be large and dataset-derived redistribution can be license-dependent. They can be regenerated by the scripts from the public datasets and recorded manifests.
 
 ## Cache and Audit Preconditions
@@ -94,6 +138,8 @@ python scripts/run_nuswide_full_suite.py --config configs/nuswide_heldout_ultras
 
 Open Images and COCO cache locations are read from the selected config file and are shared across classA/classB configs because the image pool, class list, and CLIP model are the same; classA/classB changes the config-internal `protocol.split_seeds`. NUS-WIDE caches are keyed by `image_pool_seed`, max images, class count, and CLIP model. In the matrix commands below, `--seed-override` is the configuration-level image/run seed; `protocol.split_seeds` are the split seeds used inside each configuration. The classB configs intentionally use the `202606xx` internal split-seed series.
 
+In this artifact, reviewer-facing "fairness diagnostics" refers to label-frequency slices and documented exception configurations, not demographic fairness claims.
+
 ## Quick Check: Print Main Tables
 
 To print the processed summary tables used by the manuscript and supplementary material:
@@ -102,7 +148,7 @@ To print the processed summary tables used by the manuscript and supplementary m
 python scripts/print_main_tables.py
 ```
 
-This reads `results/` only and does not require raw images. It prints the three main dataset tables plus the key ablation, sensitivity, post-hoc, known-context control, TECR denominator, NUS-WIDE, MKT, ODIN, robustness, and parameter-stability summaries.
+This reads `results/` only and does not require raw images. It prints the three main dataset tables plus the key ablation, sensitivity, post-hoc, known-context control, TECR denominator, NUS-WIDE, MKT, ODIN, robustness, parameter-stability, larger filtered Open Images supplementary summaries, and the complete Open Images validation supplementary summary.
 
 To check that every paper-facing experiment claim has a runnable script, protocol config, processed-result file, and key manuscript/supplementary numeric value:
 
@@ -156,6 +202,66 @@ python scripts/summarize_training_and_main_results.py --dataset-name "Open Image
 ```
 
 If training baselines are being regenerated too, run `scripts/run_openimages_training_baselines.py` for the same 12 `--config`/`--seed-override` pairs into directories matching the `--training-glob`.
+
+### Optional Larger Filtered Open Images Validation-Subset Check
+
+This supplementary reviewer-facing scope check keeps the same `120` labels and held-out `40/20/40` protocol family but expands the Open Images pool to a larger filtered `37,591`-image validation subset. It is not a replacement for the repeated Open Images `10k` benchmark used in the manuscript main tables.
+
+The config aliases for this supplementary check are:
+
+- `configs/openimages_fullval_filtered_heldout_ultrastrict.yaml`
+- `configs/openimages_fullval_filtered_heldout_ultrastrict_classB.yaml`
+- `configs/openimages_fullfiltered_validation_heldout_ultrastrict.yaml`
+- `configs/openimages_fullfiltered_validation_heldout_ultrastrict_classB.yaml`
+
+Minimal rerun outline:
+
+```bash
+python scripts/run_openimages_pilot.py --config configs/openimages_fullval_filtered_heldout_ultrastrict.yaml --cache-only
+```
+
+Then rerun the same 12 held-out/calibrated-baseline jobs as the main Open Images matrix, but with the `openimages_fullval_filtered_...` configs and output prefixes. After the per-configuration jobs complete, aggregate them with:
+
+```bash
+python scripts/summarize_openimages_fullval_sanity.py
+```
+
+The released processed summaries for this supplementary slot are:
+
+- `results/supplementary/openimages_full_filtered_validation_sanity_summary.csv`
+- `results/supplementary/openimages_full_filtered_validation_sanity_report.md`
+- `results/supplementary/openimages_full_filtered_validation_sanity_per_config.csv`
+- `results/supplementary/openimages_full_filtered_validation_provenance/`
+
+The reviewer-facing interpretation and naming conventions for this slot are documented in `docs/openimages_filtered_validation_sanity_check.md`.
+
+If a future journal workflow explicitly asks for this supplementary slot to become a full validation slot, keep the same release-facing filenames, rerun the full `12`-configuration matrix against the recorded retained pool, populate the reserved provenance directory with run receipts or copied config snapshots, and only then freeze paper-facing numeric targets for that promoted slot. Here, "full validation slot" means that future rerun-plus-receipts release, not the current bundled supplementary evidence.
+
+### Supplementary Complete Open Images Validation Release
+
+This supplementary reviewer-facing release keeps the same `120` labels and held-out `40/20/40` protocol family, but uses the complete `41,620`-image Open Images validation pool defined by `validation-images-with-rotation.csv` while freezing the selected `120` labels through `data_manifest/openimages_selected_label_ids_top120.json`. It remains supplementary reviewer evidence rather than a replacement for the manuscript's repeated Open Images `10k` benchmark.
+
+The configs for this release are:
+
+- `configs/openimages_complete_validation_heldout_ultrastrict.yaml`
+- `configs/openimages_complete_validation_heldout_ultrastrict_classB.yaml`
+
+The released processed summaries for this supplementary slot are:
+
+- `results/supplementary/openimages_complete_validation_summary.csv`
+- `results/supplementary/openimages_complete_validation_report.md`
+- `results/supplementary/openimages_complete_validation_per_config.csv`
+- `results/supplementary/openimages_complete_validation_provenance/`
+- `data_manifest/openimages_complete_validation_cache_manifest.json`
+- `data_manifest/openimages_selected_label_ids_top120.json`
+
+The main supplementary comparison in the released summary is:
+
+- `CLIP+kNN global threshold`: AP `0.8589`, F1 `0.7774`, TECR `0.2241`
+- `Held-out gate global threshold`: AP `0.8588`, F1 `0.7763`, TECR `0.1914`
+- TECR reduction: `14.6%`
+
+The released per-config rows also keep the same direction at the configuration level: `12/12` class-split-by-seed pairs show lower TECR for `heldout_gate_global_threshold` than for `clip_knn_global_threshold`, with mean paired TECR delta `0.0327`.
 
 ### COCO 12-Configuration Matrix
 
@@ -263,7 +369,7 @@ Do not run Wilcoxon on `heldout_eval_rows.csv` or other split-level rows unless 
 |---|---:|---:|---:|
 | Open Images 10k | 0.2592 | 0.2126 | 18.0% |
 | COCO val2017 | 0.2545 | 0.1848 | 27.4% |
-| NUS-WIDE stress test | 0.2571 | 0.1920 | 25.3% |
+| NUS-WIDE recoverable-subset check | 0.2571 | 0.1920 | 25.3% |
 
 ## Post-Hoc Baseline Check
 
